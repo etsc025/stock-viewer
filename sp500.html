@@ -63,18 +63,22 @@ function parseCSV(text){
   const lines=text.trim().split('\n');
   let spyRet=null;
   let dataLines=lines;
-  if(lines[0].startsWith('# SPY=')){
-    spyRet=parseFloat(lines[0].replace('# SPY=',''));
+  if(lines[0].startsWith('#')){
+    if(lines[0].includes('SPY=')){
+      spyRet=parseFloat(lines[0].split('SPY=')[1]);
+    }
     dataLines=lines.slice(1);
   }
+  if(!dataLines[0] || !dataLines[0].includes('ticker')) return {rows:[], spyRet};
   const headers=dataLines[0].split(',').map(h=>h.trim());
   const rows=dataLines.slice(1).map(line=>{
+    if(!line.trim()) return null;
     const vals=line.split(',').map(v=>v.trim());
     const o={};
     headers.forEach((h,i)=>o[h]=vals[i]||'');
     return {ticker:o.ticker,name:o.name,sector:o.sector,
             return_pct:parseFloat(o.return_pct)||0,market_cap_b:parseFloat(o.market_cap_b)||0};
-  }).filter(r=>r.ticker);
+  }).filter(r=>r && r.ticker);
   return {rows, spyRet};
 }
 
