@@ -93,6 +93,7 @@ function parseCSV(text){
 
 function hashFrac(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000;return h/1000;}
 
+/* v5 */
 async function loadFromGitHub(){
   const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/sp500/';
   const listUrl = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/sp500';
