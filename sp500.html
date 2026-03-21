@@ -151,8 +151,16 @@ function drawFrame(fi){
   const frame=frames[fi];
   if(!frame) return;
   const ts=frame.ts;
-  const label=ts.replace(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})$/,'$1/$2/$3 $4:$5 JST');
-  document.getElementById('timeLabel').textContent=label;
+  // JST→ET変換
+  const year=parseInt(ts.substr(0,4)),mon=parseInt(ts.substr(4,2))-1,day=parseInt(ts.substr(6,2));
+  const hour=parseInt(ts.substr(9,2)),min=parseInt(ts.substr(11,2));
+  const jst=new Date(year,mon,day,hour,min);
+  const isDST=mon>=2&&mon<=10;
+  const etOffset=isDST?-13:-14;
+  const et=new Date(jst.getTime()+etOffset*3600000);
+  const etStr=et.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
+  document.getElementById('timeLabel').textContent=etStr+spyVal;
   document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
 
   const cv=document.getElementById('cv');
