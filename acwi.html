@@ -32,7 +32,7 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
   <button onclick="stepFrame(1)">次へ ▶</button>
   <span id="timeLabel">--:--</span>
   <label style="font-size:12px;color:#8b949e;">速度</label>
-  <input type="range" id="speed" min="200" max="3000" value="1000" step="100" oninput="updateSpeed()" style="width:80px;">
+  <input type="range" id="speed" min="200" max="3000" value="500" step="100" oninput="updateSpeed()" style="width:80px;">
   <span id="speedLabel" style="font-size:12px;color:#8b949e;">1.0x</span>
   <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
   <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
@@ -65,7 +65,7 @@ const COLORS = {
   'Other':'#B0BEC5'
 };
 const SECTORS = Object.keys(COLORS);
-let frames=[], currentFrame=0, playing=false, timer=null, speed=1000;
+let frames=[], currentFrame=0, playing=false, timer=null, speed=500;
 let hidden=new Set(), jitterMap={};
 
 function parseCSV(text){
@@ -101,8 +101,8 @@ async function loadFromGitHub(){
     document.getElementById('progress').textContent = frames.length+'フレーム読み込み完了';
     document.getElementById('ctrl').style.display='flex';
     const sl=document.getElementById('slider');
-    sl.max=frames.length-1; sl.value=frames.length-1;
-    currentFrame=frames.length-1; drawFrame(currentFrame);
+    sl.max=frames.length-1; sl.value=0;
+    currentFrame=0; drawFrame(0);
   } catch(e) {
     document.getElementById('progress').textContent = 'エラー: '+e.message;
   }
