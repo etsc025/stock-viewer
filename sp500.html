@@ -115,7 +115,7 @@ async function loadFromGitHub(){
     sl.max=frames.length-1; sl.value=0;
     currentFrame=0; drawFrame(0);
   } catch(e) {
-    document.getElementById('progress').textContent = 'エラー: '+e.message;
+    document.getElementById('progress').textContent = 'エラー: '+e.message+' / '+e.stack;
   }
 }
 loadFromGitHub();
