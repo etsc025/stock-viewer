@@ -217,8 +217,10 @@ function drawFrame(fi){
   const etOffset=isDST?-13:-14;
   const et=new Date(jst.getTime()+etOffset*3600000);
   const etStr=et.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
-  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   ACWI '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
-  document.getElementById('timeLabel').textContent=etStr+spyVal;
+  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
+  const spyColor=frame.spyRet>0?'#22c55e':frame.spyRet<0?'#ef4444':'#666';
+  const timeLabelEl=document.getElementById('timeLabel');
+  timeLabelEl.innerHTML=etStr+' <span style="color:'+spyColor+';font-weight:600"> ACWI '+spyVal+'</span>';
   document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
 
   // 為替レート表示を更新
