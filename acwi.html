@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>S&P 500 バブルチャート</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #ffffff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 16px; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 12px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+button { background: #f0f0f0; border: 1px solid #e0e0e0; color: #1a1a1a; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+button:hover { background: #30363d; }
+button.active { background: #1f6feb; border-color: #1f6feb; }
+#timeLabel { font-size: 14px; color: #666666; min-width: 140px; }
+canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666666; cursor: pointer; }
+.li.dim { opacity: 0.25; }
+.ld { width: 9px; height: 9px; border-radius: 50%; }
+.tip { position: fixed; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.6; }
+#loadArea { border: 2px dashed #cccccc; border-radius: 8px; padding: 2rem; text-align: center; color: #666666; font-size: 14px; margin-bottom: 16px; cursor: pointer; }
+#loadArea:hover { background: #f5f5f5; }
+#progress { font-size: 12px; color: #666666; margin-top: 6px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>ACWI バブルチャート アニメーション（地域別）</h1>
+<div id="loadArea" onclick="document.getElementById('fileInput').click()">
+  ~/家Finance/ フォルダの CSV を全選択してドロップ or クリック
+  <br><small>Finder で *.csv を Cmd+A で全選択 → ここにドロップ</small>
+  <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
+</div>
+<div id="progress"></div>
+<div class="controls" id="ctrl" style="display:none">
+  <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
+  <button onclick="stepFrame(-1)">◀ 前へ</button>
+  <button onclick="stepFrame(1)">次へ ▶</button>
+  <span id="timeLabel">--:--</span>
+  <label style="font-size:12px;color:#8b949e;">速度</label>
+  <input type="range" id="speed" min="200" max="3000" value="1000" step="100" oninput="updateSpeed()" style="width:80px;">
+  <span id="speedLabel" style="font-size:12px;color:#8b949e;">1.0x</span>
+  <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
+  <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
+</div>
+<canvas id="cv"></canvas>
+<div class="legend" id="leg"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const COLORS = {
+  'United States':'#64B5F6',
+  'Japan':'#EF5350',
+  'United Kingdom':'#81C784',
+  'France':'#CE93D8',
+  'Germany':'#FFB74D',
+  'Switzerland':'#FF8A65',
+  'Canada':'#AED581',
+  'Australia':'#90CAF9',
+  'Korea (South)':'#F06292',
+  'Taiwan':'#DCE775',
+  'China':'#F48FB1',
+  'India':'#FFCC80',
+  'Netherlands':'#80DEEA',
+  'Sweden':'#BCAAA4',
+  'Brazil':'#A5D6A7',
+  'Saudi Arabia':'#FFE082',
+  'South Africa':'#EF9A9A',
+  'Singapore':'#80CBC4',
+  'Indonesia':'#CE93D8',
+  'Other':'#B0BEC5'
+};
+const SECTORS = Object.keys(COLORS);
+let frames=[], currentFrame=0, playing=false, timer=null, speed=1000;
+let hidden=new Set(), jitterMap={};
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const vals=line.split(',').map(v=>v.trim());
+    const o={};
+    headers.forEach((h,i)=>o[h]=vals[i]||'');
+    return {ticker:o.ticker,name:o.name,sector:o.sector,
+            return_pct:parseFloat(o.return_pct)||0,market_cap_b:parseFloat(o.market_cap_b)||0};
+  }).filter(r=>r.ticker);
+}
+
+function hashFrac(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000;return h/1000;}
+
+document.getElementById('fileInput').addEventListener('change',async e=>{
+  const files=Array.from(e.target.files).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('progress').textContent=files.length+'ファイル読み込み中...';
+  frames=[];
+  for(const f of files){
+    const text=await f.text();
+    const rows=parseCSV(text);
+    const ts=f.name.replace('.csv','');
+    frames.push({ts,rows});
+    rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+  }
+  document.getElementById('progress').textContent=frames.length+'フレーム読み込み完了';
+  document.getElementById('loadArea').style.display='none';
+  document.getElementById('ctrl').style.display='flex';
+  const sl=document.getElementById('slider');
+  sl.max=frames.length-1; sl.value=0;
+  currentFrame=0; drawFrame(0);
+});
+
+// drag & drop
+const la=document.getElementById('loadArea');
+la.addEventListener('dragover',e=>{e.preventDefault();la.style.background='#161b22';});
+la.addEventListener('dragleave',()=>{la.style.background='';});
+la.addEventListener('drop',async e=>{
+  e.preventDefault(); la.style.background='';
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('progress').textContent=files.length+'ファイル読み込み中...';
+  frames=[];
+  for(const f of files){
+    const text=await f.text();
+    const rows=parseCSV(text);
+    frames.push({ts:f.name.replace('.csv',''),rows});
+    rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+  }
+  document.getElementById('progress').textContent=frames.length+'フレーム読み込み完了';
+  document.getElementById('loadArea').style.display='none';
+  document.getElementById('ctrl').style.display='flex';
+  document.getElementById('slider').max=frames.length-1;
+  currentFrame=0; drawFrame(0);
+});
+
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('btnPlay').textContent=playing?'⏸ 一時停止':'▶ 再生';
+  document.getElementById('btnPlay').classList.toggle('active',playing);
+  if(playing) autoPlay(); else clearTimeout(timer);
+}
+
+function autoPlay(){
+  if(!playing) return;
+  if(currentFrame>=frames.length-1){playing=false;document.getElementById('btnPlay').textContent='▶ 再生';document.getElementById('btnPlay').classList.remove('active');return;}
+  currentFrame++;
+  document.getElementById('slider').value=currentFrame;
+  drawFrame(currentFrame);
+  timer=setTimeout(autoPlay,speed);
+}
+
+function stepFrame(d){
+  clearTimeout(timer); playing=false;
+  document.getElementById('btnPlay').textContent='▶ 再生';
+  document.getElementById('btnPlay').classList.remove('active');
+  currentFrame=Math.max(0,Math.min(frames.length-1,currentFrame+d));
+  document.getElementById('slider').value=currentFrame;
+  drawFrame(currentFrame);
+}
+
+function sliderChange(){
+  currentFrame=parseInt(document.getElementById('slider').value);
+  drawFrame(currentFrame);
+}
+
+function updateSpeed(){
+  speed=parseInt(document.getElementById('speed').value);
+  const x=((3000-speed)/2800*1.8+0.2).toFixed(1);
+  document.getElementById('speedLabel').textContent=x+'x';
+}
+
+function drawFrame(fi){
+  const frame=frames[fi];
+  if(!frame) return;
+  const ts=frame.ts;
+  const label=ts.replace(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})$/,'$1/$2/$3 $4:$5 JST');
+  document.getElementById('timeLabel').textContent=label;
+  document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
+
+  const cv=document.getElementById('cv');
+  const W=Math.max(600,document.body.clientWidth-32);
+  const H=Math.round(W*0.5);
+  cv.width=W; cv.height=H;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const PAD_L=58,PAD_R=8,PAD_T=20,PAD_B=56;
+  const cW=W-PAD_L-PAD_R, cH=H-PAD_T-PAD_B;
+  const nS=SECTORS.length, colW=cW/nS;
+
+  const allR=frame.rows.map(d=>d.return_pct);
+  const maxAbs=Math.max(...allR.map(Math.abs),3);
+  const rMax=Math.ceil(maxAbs);
+  const maxCap=Math.max(...frame.rows.map(d=>d.market_cap_b));
+
+  function toY(r){return PAD_T+cH/2-(r/rMax)*(cH/2-6);}
+  function bR(c){return Math.max(4,Math.sqrt(c/maxCap)*72);}
+
+  const tC='rgba(60,60,60,0.8)',gC='rgba(255,255,255,0.05)',zC='rgba(255,255,255,0.15)';
+  ctx.font='11px -apple-system,sans-serif';
+
+  for(let v=-rMax;v<=rMax;v++){
+    if(Math.abs(v)%Math.max(1,Math.round(rMax/4))!==0&&v!==0) continue;
+    const y=toY(v);
+    ctx.beginPath();ctx.moveTo(PAD_L,y);ctx.lineTo(W-PAD_R,y);
+    if(v===0){
+      ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=2.0;
+    } else {
+      ctx.strokeStyle='rgba(0,0,0,0.15)';ctx.lineWidth=0.8;
+    }
+    ctx.stroke();
+    ctx.fillStyle = v > 0 ? 'rgba(0,120,0,0.85)' : v < 0 ? 'rgba(200,0,0,0.85)' : 'rgba(60,60,60,0.85)';
+    ctx.textAlign='right';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.fillText((v>0?'+':'')+v+'%',PAD_L-5,y+4);
+  }
+
+  SECTORS.forEach((s,i)=>{
+    const cx=PAD_L+(i+0.5)*colW;
+    const lbl=s==='United States'?'US':s==='United Kingdom'?'UK':s==='Korea (South)'?'Korea':s==='Switzerland'?'Swiss':s==='Netherlands'?'NL':s==='Australia'?'Aus':s==='Saudi Arabia'?'S.Arabia':s==='South Africa'?'S.Africa':s==='Singapore'?'SG':s==='Indonesia'?'Indo':s;
+    ctx.fillStyle=hidden.has(s)?'rgba(180,180,180,0.5)':tC;
+    ctx.textAlign='center';ctx.font='13px -apple-system,sans-serif';
+    ctx.fillText(lbl,cx,H-PAD_B+20);
+    if(i>0){ctx.beginPath();ctx.moveTo(PAD_L+i*colW,PAD_T);ctx.lineTo(PAD_L+i*colW,H-PAD_B);ctx.strokeStyle='rgba(0,0,0,0.08)';ctx.lineWidth=0.8;ctx.stroke();}
+  });
+
+  const rendered=[];
+  frame.rows.forEach(row=>{
+    const si=SECTORS.indexOf(row.sector);
+    if(si<0) return;
+    const jitter=jitterMap[row.ticker]||0.5;
+    const cx=PAD_L+(si+0.3+jitter*0.4)*colW;
+    const cy=toY(row.return_pct);
+    const r=bR(row.market_cap_b);
+    const color=COLORS[row.sector]||'#888';
+    const alpha=hidden.has(row.sector)?'22':'99';
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=color+alpha;ctx.fill();
+    ctx.strokeStyle=hidden.has(row.sector)?color+'33':color;
+    ctx.lineWidth=0.7;ctx.stroke();
+    if(r>16&&!hidden.has(row.sector)){
+      ctx.fillStyle='rgba(0,0,0,0.8)';
+      ctx.font=`${Math.min(13,r*0.42)}px -apple-system,sans-serif`;
+      ctx.textAlign='center';
+      ctx.fillText(row.ticker,cx,cy+4);
+    }
+    rendered.push({cx,cy,r,row});
+  });
+  cv._rendered=rendered;
+}
+
+const legEl=document.getElementById('leg');
+SECTORS.forEach(s=>{
+  const d=document.createElement('div');
+  d.className='li';
+  d.innerHTML=`<div class="ld" style="background:${COLORS[s]}"></div>${s}`;
+  d.onclick=()=>{if(hidden.has(s))hidden.delete(s);else hidden.add(s);d.classList.toggle('dim',hidden.has(s));drawFrame(currentFrame);};
+  legEl.appendChild(d);
+});
+
+const cv=document.getElementById('cv');
+cv.addEventListener('mousemove',e=>{
+  const rect=cv.getBoundingClientRect();
+  const scX=cv.width/rect.width;
+  const mx=(e.clientX-rect.left)*scX,my=(e.clientY-rect.top)*scX;
+  let hit=null;
+  for(const b of (cv._rendered||[])){if(Math.hypot(mx-b.cx,my-b.cy)<=b.r+2){hit=b;break;}}
+  const tip=document.getElementById('tip');
+  if(hit){
+    const r=hit.row,s=r.return_pct>0?'+':'';
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY-10)+'px';
+    tip.innerHTML=`<b>${r.ticker}</b> — ${r.name}<br>セクター: ${r.sector}<br>リターン: ${s}${r.return_pct.toFixed(2)}%<br>時価総額: $${r.market_cap_b.toFixed(0)}B`;
+  } else tip.style.display='none';
+});
+cv.addEventListener('mouseleave',()=>{document.getElementById('tip').style.display='none';});
+window.addEventListener('resize',()=>drawFrame(currentFrame));
+</script>
+</body>
+</html>
