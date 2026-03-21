@@ -74,7 +74,15 @@ function parseCSV(text){
   const headers=dataLines[0].split(',').map(h=>h.trim());
   const rows=dataLines.slice(1).map(line=>{
     if(!line.trim()) return null;
-    const vals=line.split(',').map(v=>v.trim());
+    // クォート対応のCSVパース
+    const vals=[];
+    let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){vals.push(cur.trim());cur='';}
+      else{cur+=line[i];}
+    }
+    vals.push(cur.trim());
     const o={};
     headers.forEach((h,i)=>o[h]=vals[i]||'');
     return {ticker:o.ticker,name:o.name,sector:o.sector,
