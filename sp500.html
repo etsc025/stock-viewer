@@ -61,14 +61,21 @@ let hidden=new Set(), jitterMap={};
 
 function parseCSV(text){
   const lines=text.trim().split('\n');
-  const headers=lines[0].split(',').map(h=>h.trim());
-  return lines.slice(1).map(line=>{
+  let spyRet=null;
+  let dataLines=lines;
+  if(lines[0].startsWith('# SPY=')){
+    spyRet=parseFloat(lines[0].replace('# SPY=',''));
+    dataLines=lines.slice(1);
+  }
+  const headers=dataLines[0].split(',').map(h=>h.trim());
+  const rows=dataLines.slice(1).map(line=>{
     const vals=line.split(',').map(v=>v.trim());
     const o={};
     headers.forEach((h,i)=>o[h]=vals[i]||'');
     return {ticker:o.ticker,name:o.name,sector:o.sector,
             return_pct:parseFloat(o.return_pct)||0,market_cap_b:parseFloat(o.market_cap_b)||0};
   }).filter(r=>r.ticker);
+  return {rows, spyRet};
 }
 
 function hashFrac(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000;return h/1000;}
@@ -85,8 +92,8 @@ async function loadFromGitHub(){
     for(const f of csvFiles){
       const r = await fetch(base+f.name);
       const text = await r.text();
-      const rows = parseCSV(text);
-      frames.push({ts:f.name.replace('.csv',''),rows});
+      const parsed = parseCSV(text);
+      frames.push({ts:f.name.replace('.csv',''),rows:parsed.rows,spyRet:parsed.spyRet});
       rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
     }
     document.getElementById('progress').textContent = frames.length+'フレーム読み込み完了';
@@ -191,6 +198,23 @@ function drawFrame(fi){
     ctx.fillText(lbl,cx,H-PAD_B+20);
     if(i>0){ctx.beginPath();ctx.moveTo(PAD_L+i*colW,PAD_T);ctx.lineTo(PAD_L+i*colW,H-PAD_B);ctx.strokeStyle='rgba(0,0,0,0.08)';ctx.lineWidth=0.8;ctx.stroke();}
   });
+
+  // SPY点線を描画
+  if(frame.spyRet !== null && frame.spyRet !== undefined){
+    const spyY = toY(frame.spyRet);
+    ctx.beginPath();
+    ctx.setLineDash([6,4]);
+    ctx.moveTo(PAD_L, spyY);
+    ctx.lineTo(W-PAD_R, spyY);
+    ctx.strokeStyle='rgba(100,100,100,0.6)';
+    ctx.lineWidth=1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(80,80,80,0.7)';
+    ctx.font='11px -apple-system,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('SPY '+( frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', PAD_L+4, spyY-4);
+  }
 
   const rendered=[];
   frame.rows.forEach(row=>{
