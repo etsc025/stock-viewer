@@ -25,8 +25,8 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
 </head>
 <body>
 <div style="padding:0.5rem 0 0.25rem;">
-  <div style="font-size:26px;font-weight:700;line-height:1.2">S&amp;P 500</div>
-  <div style="font-size:14px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+  <div style="font-size:32px;font-weight:700;line-height:1.2">S&amp;P 500</div>
+  <div style="font-size:18px;color:#666;margin-top:4px" id="timeLabel">読み込み中...</div>
 </div>
 <div class="controls" id="ctrl" style="display:none">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
@@ -204,6 +204,7 @@ function drawFrame(fi){
   ctx.fillStyle='rgba(60,60,60,0.6)';
   ctx.font='11px -apple-system,sans-serif';
   ctx.textAlign='center';
+  ctx.font='13px -apple-system,sans-serif';
   ctx.fillText('Stock Return', 0, 0);
   ctx.restore();
 
@@ -243,8 +244,8 @@ function drawFrame(fi){
     ctx.lineWidth=1.2;
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='rgba(80,80,80,0.7)';
-    ctx.font='11px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(80,80,80,0.9)';
+    ctx.font='13px -apple-system,sans-serif';
     ctx.textAlign='right';
     ctx.fillText('SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', W-PAD_R-4, spyY-4);
   }
