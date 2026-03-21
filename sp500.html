@@ -25,12 +25,7 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
 </head>
 <body>
 <h1>S&amp;P 500 バブルチャート アニメーション</h1>
-<div id="loadArea" onclick="document.getElementById('fileInput').click()">
-  ~/家Finance/ フォルダの CSV を全選択してドロップ or クリック
-  <br><small>Finder で *.csv を Cmd+A で全選択 → ここにドロップ</small>
-  <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
-</div>
-<div id="progress"></div>
+<div id="progress">データ読み込み中...</div>
 <div class="controls" id="ctrl" style="display:none">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
   <button onclick="stepFrame(-1)">◀ 前へ</button>
@@ -78,46 +73,34 @@ function parseCSV(text){
 
 function hashFrac(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000;return h/1000;}
 
-document.getElementById('fileInput').addEventListener('change',async e=>{
+async function loadFromGitHub(){
   const files=Array.from(e.target.files).sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('progress').textContent=files.length+'ファイル読み込み中...';
-  frames=[];
-  for(const f of files){
-    const text=await f.text();
-    const rows=parseCSV(text);
-    const ts=f.name.replace('.csv','');
-    frames.push({ts,rows});
-    rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+async function loadFromGitHub(){
+  const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/sp500/';
+  const listUrl = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/sp500';
+  try {
+    const res = await fetch(listUrl);
+    const files = await res.json();
+    const csvFiles = files.filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+    document.getElementById('progress').textContent = csvFiles.length+'フレーム読み込み中...';
+    frames=[];
+    for(const f of csvFiles){
+      const r = await fetch(base+f.name);
+      const text = await r.text();
+      const rows = parseCSV(text);
+      frames.push({ts:f.name.replace('.csv',''),rows});
+      rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+    }
+    document.getElementById('progress').textContent = frames.length+'フレーム読み込み完了';
+    document.getElementById('ctrl').style.display='flex';
+    const sl=document.getElementById('slider');
+    sl.max=frames.length-1; sl.value=frames.length-1;
+    currentFrame=frames.length-1; drawFrame(currentFrame);
+  } catch(e) {
+    document.getElementById('progress').textContent = 'エラー: '+e.message;
   }
-  document.getElementById('progress').textContent=frames.length+'フレーム読み込み完了';
-  document.getElementById('loadArea').style.display='none';
-  document.getElementById('ctrl').style.display='flex';
-  const sl=document.getElementById('slider');
-  sl.max=frames.length-1; sl.value=0;
-  currentFrame=0; drawFrame(0);
-});
-
-// drag & drop
-const la=document.getElementById('loadArea');
-la.addEventListener('dragover',e=>{e.preventDefault();la.style.background='#161b22';});
-la.addEventListener('dragleave',()=>{la.style.background='';});
-la.addEventListener('drop',async e=>{
-  e.preventDefault(); la.style.background='';
-  const files=Array.from(e.dataTransfer.files).filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('progress').textContent=files.length+'ファイル読み込み中...';
-  frames=[];
-  for(const f of files){
-    const text=await f.text();
-    const rows=parseCSV(text);
-    frames.push({ts:f.name.replace('.csv',''),rows});
-    rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
-  }
-  document.getElementById('progress').textContent=frames.length+'フレーム読み込み完了';
-  document.getElementById('loadArea').style.display='none';
-  document.getElementById('ctrl').style.display='flex';
-  document.getElementById('slider').max=frames.length-1;
-  currentFrame=0; drawFrame(0);
-});
+}
+loadFromGitHub();
 
 function togglePlay(){
   playing=!playing;
