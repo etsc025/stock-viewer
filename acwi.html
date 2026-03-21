@@ -179,7 +179,7 @@ function drawFrame(fi){
   const etOffset=isDST?-13:-14;
   const et=new Date(jst.getTime()+etOffset*3600000);
   const etStr=et.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
-  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
+  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   ACWI '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
   document.getElementById('timeLabel').textContent=etStr+spyVal;
   document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
 
@@ -256,7 +256,7 @@ function drawFrame(fi){
     ctx.fillStyle='rgba(80,80,80,0.9)';
     ctx.font='15px -apple-system,sans-serif';
     ctx.textAlign='right';
-    ctx.fillText('SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', W-PAD_R-4, spyY-4);
+    ctx.fillText('ACWI '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', W-PAD_R-4, spyY-4);
   }
 
   const rendered=[];
