@@ -178,6 +178,16 @@ function drawFrame(fi){
   const tC='rgba(60,60,60,0.8)',gC='rgba(255,255,255,0.05)',zC='rgba(255,255,255,0.15)';
   ctx.font='11px -apple-system,sans-serif';
 
+  // Y軸タイトル
+  ctx.save();
+  ctx.translate(14, PAD_T+cH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(60,60,60,0.6)';
+  ctx.font='11px -apple-system,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('Stock Return', 0, 0);
+  ctx.restore();
+
   for(let v=-rMax;v<=rMax;v++){
     if(Math.abs(v)%Math.max(1,Math.round(rMax/4))!==0&&v!==0) continue;
     const y=toY(v);
