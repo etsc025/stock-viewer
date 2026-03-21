@@ -24,9 +24,16 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
 </style>
 </head>
 <body>
-<div style="padding:0.5rem 0 0.25rem;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.5rem 0 0.25rem;">
+  <div>
   <div style="font-size:28px;font-weight:700;line-height:1.1">ACWI（地域別）</div>
   <div style="font-size:22px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+  </div>
+  <div id="fxBox" style="text-align:right;padding-top:4px;">
+    <div style="font-size:13px;color:#999;">USD/JPY</div>
+    <div id="fxRate" style="font-size:22px;font-weight:600;color:#666;">--</div>
+    <div id="fxChange" style="font-size:16px;">--</div>
+  </div>
 </div>
 <div class="controls" id="ctrl" style="display:none">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
@@ -44,6 +51,37 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
 <div class="tip" id="tip"></div>
 
 <script>
+// 為替レート取得
+let fxCache = null;
+async function updateFxRate(){
+  try {
+    if(fxCache && Date.now()-fxCache.ts < 60000) {
+      renderFx(fxCache);
+      return;
+    }
+    const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X?interval=1d&range=5d');
+    const data = await res.json();
+    const closes = data.chart.result[0].indicators.quote[0].close;
+    const current = closes[closes.length-1];
+    const prev = closes[closes.length-2];
+    const change = current - prev;
+    const changePct = (change/prev*100);
+    fxCache = {current, change, changePct, ts: Date.now()};
+    renderFx(fxCache);
+  } catch(e) {
+    document.getElementById('fxRate').textContent = '--';
+  }
+}
+function renderFx(fx){
+  const color = fx.change > 0 ? '#22c55e' : fx.change < 0 ? '#ef4444' : '#666';
+  document.getElementById('fxRate').textContent = fx.current.toFixed(2);
+  document.getElementById('fxRate').style.color = color;
+  document.getElementById('fxChange').innerHTML =
+    '<span style="color:'+color+'">'+(fx.change>0?'+':'')+fx.change.toFixed(2)+
+    ' ('+(fx.changePct>0?'+':'')+fx.changePct.toFixed(2)+'%)</span>';
+}
+updateFxRate();
+
 const COLORS = {
   'United States':'#64B5F6',
   'Japan':'#EF5350',
@@ -182,6 +220,9 @@ function drawFrame(fi){
   const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   ACWI '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
   document.getElementById('timeLabel').textContent=etStr+spyVal;
   document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
+
+  // 為替レート表示を更新
+  updateFxRate();
 
   const cv=document.getElementById('cv');
   const W=Math.max(600,document.body.clientWidth-32);
