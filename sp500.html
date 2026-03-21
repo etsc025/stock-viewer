@@ -59,17 +59,33 @@ async function updateFxRate(){
       renderFx(fxCache);
       return;
     }
-    const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X?interval=1d&range=5d');
+    // exchangerate-api（CORS対応）
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
     const data = await res.json();
-    const closes = data.chart.result[0].indicators.quote[0].close;
-    const current = closes[closes.length-1];
-    const prev = closes[closes.length-2];
-    const change = current - prev;
-    const changePct = (change/prev*100);
+    const current = data.rates.JPY;
+    // 前日比は別途取得
+    const res2 = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X?interval=1d&range=5d',
+      {mode:'cors'});
+    let change = 0, changePct = 0;
+    try {
+      const data2 = await res2.json();
+      const closes = data2.chart.result[0].indicators.quote[0].close.filter(v=>v!=null);
+      const prev = closes[closes.length-2];
+      change = current - prev;
+      changePct = change/prev*100;
+    } catch(e2){}
     fxCache = {current, change, changePct, ts: Date.now()};
     renderFx(fxCache);
   } catch(e) {
-    document.getElementById('fxRate').textContent = '--';
+    // フォールバック：exchangerate-apiのみ
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
+      const data = await res.json();
+      fxCache = {current: data.rates.JPY, change: 0, changePct: 0, ts: Date.now()};
+      renderFx(fxCache);
+    } catch(e2){
+      document.getElementById('fxRate').textContent = '--';
+    }
   }
 }
 function renderFx(fx){
