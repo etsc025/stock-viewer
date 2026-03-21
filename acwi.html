@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>S&P 500 バブルチャート</title>
+<title>ACWI Bubble Chart</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #ffffff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 16px; }
+body { background: #ffffff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 8px 16px; }
 h1 { font-size: 20px; font-weight: 500; margin-bottom: 12px; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 button { background: #f0f0f0; border: 1px solid #e0e0e0; color: #1a1a1a; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
@@ -24,19 +24,21 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
 </style>
 </head>
 <body>
-<h1>ACWI バブルチャート アニメーション（地域別）</h1>
-<div id="progress"></div>
+<div style="padding:0.5rem 0 0.25rem;">
+  <div style="font-size:28px;font-weight:700;line-height:1.1">ACWI（地域別）</div>
+  <div style="font-size:22px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+</div>
 <div class="controls" id="ctrl" style="display:none">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
   <button onclick="stepFrame(-1)">◀ 前へ</button>
   <button onclick="stepFrame(1)">次へ ▶</button>
-  <span id="timeLabel">--:--</span>
   <label style="font-size:12px;color:#8b949e;">速度</label>
   <input type="range" id="speed" min="200" max="3000" value="500" step="100" oninput="updateSpeed()" style="width:80px;">
-  <span id="speedLabel" style="font-size:12px;color:#8b949e;">1.0x</span>
+  <span id="speedLabel" style="font-size:12px;color:#8b949e;">2.0x</span>
   <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
   <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
 </div>
+<div id="progress" style="font-size:13px;color:#666;margin-bottom:8px;"></div>
 <canvas id="cv"></canvas>
 <div class="legend" id="leg"></div>
 <div class="tip" id="tip"></div>
@@ -70,33 +72,53 @@ let hidden=new Set(), jitterMap={};
 
 function parseCSV(text){
   const lines=text.trim().split('\n');
-  const headers=lines[0].split(',').map(h=>h.trim());
-  return lines.slice(1).map(line=>{
-    const vals=line.split(',').map(v=>v.trim());
+  let spyRet=null;
+  let dataLines=lines;
+  if(lines[0].startsWith('#')){
+    if(lines[0].includes('SPY=')){
+      spyRet=parseFloat(lines[0].split('SPY=')[1]);
+    }
+    dataLines=lines.slice(1);
+  }
+  if(!dataLines[0] || !dataLines[0].includes('ticker')) return {rows:[], spyRet};
+  const headers=dataLines[0].split(',').map(h=>h.trim());
+  const rows=dataLines.slice(1).map(line=>{
+    if(!line.trim()) return null;
+    // クォート対応のCSVパース
+    const vals=[];
+    let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){vals.push(cur.trim());cur='';}
+      else{cur+=line[i];}
+    }
+    vals.push(cur.trim());
     const o={};
     headers.forEach((h,i)=>o[h]=vals[i]||'');
     return {ticker:o.ticker,name:o.name,sector:o.sector,
             return_pct:parseFloat(o.return_pct)||0,market_cap_b:parseFloat(o.market_cap_b)||0};
-  }).filter(r=>r.ticker);
+  }).filter(r=>r && r.ticker);
+  return {rows, spyRet};
 }
 
 function hashFrac(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000;return h/1000;}
 
+/* v5 */
 async function loadFromGitHub(){
   const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/acwi/';
   const listUrl = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/acwi';
   try {
     const res = await fetch(listUrl);
     const files = await res.json();
-    const csvFiles = files.filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+    const csvFiles = files.filter(f=>f.name.endsWith('.csv') && f.size > 10).sort((a,b)=>a.name.localeCompare(b.name));
     document.getElementById('progress').textContent = csvFiles.length+'フレーム読み込み中...';
     frames=[];
     for(const f of csvFiles){
       const r = await fetch(base+f.name);
       const text = await r.text();
-      const rows = parseCSV(text);
-      frames.push({ts:f.name.replace('.csv',''),rows});
-      rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+      const parsed = parseCSV(text);
+      frames.push({ts:f.name.replace('.csv',''),rows:parsed.rows,spyRet:parsed.spyRet});
+      parsed.rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
     }
     document.getElementById('progress').textContent = frames.length+'フレーム読み込み完了';
     document.getElementById('ctrl').style.display='flex';
@@ -104,7 +126,7 @@ async function loadFromGitHub(){
     sl.max=frames.length-1; sl.value=0;
     currentFrame=0; drawFrame(0);
   } catch(e) {
-    document.getElementById('progress').textContent = 'エラー: '+e.message;
+    document.getElementById('progress').textContent = 'エラー: '+e.message+' / '+e.stack;
   }
 }
 loadFromGitHub();
@@ -149,13 +171,21 @@ function drawFrame(fi){
   const frame=frames[fi];
   if(!frame) return;
   const ts=frame.ts;
-  const label=ts.replace(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})$/,'$1/$2/$3 $4:$5 JST');
-  document.getElementById('timeLabel').textContent=label;
+  // JST→ET変換
+  const year=parseInt(ts.substr(0,4)),mon=parseInt(ts.substr(4,2))-1,day=parseInt(ts.substr(6,2));
+  const hour=parseInt(ts.substr(9,2)),min=parseInt(ts.substr(11,2));
+  const jst=new Date(year,mon,day,hour,min);
+  const isDST=mon>=2&&mon<=10;
+  const etOffset=isDST?-13:-14;
+  const et=new Date(jst.getTime()+etOffset*3600000);
+  const etStr=et.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+  const spyVal=frame.spyRet!==null&&frame.spyRet!==undefined?'   SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%':'';
+  document.getElementById('timeLabel').textContent=etStr+spyVal;
   document.getElementById('frameLabel').textContent=(fi+1)+'/'+frames.length;
 
   const cv=document.getElementById('cv');
   const W=Math.max(600,document.body.clientWidth-32);
-  const H=Math.round(W*0.5);
+  const H=Math.round(window.innerHeight*0.72);
   cv.width=W; cv.height=H;
   cv.style.width=W+'px'; cv.style.height=H+'px';
   const ctx=cv.getContext('2d');
@@ -175,6 +205,17 @@ function drawFrame(fi){
 
   const tC='rgba(60,60,60,0.8)',gC='rgba(255,255,255,0.05)',zC='rgba(255,255,255,0.15)';
   ctx.font='11px -apple-system,sans-serif';
+
+  // Y軸タイトル
+  ctx.save();
+  ctx.translate(14, PAD_T+cH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(60,60,60,0.6)';
+  ctx.font='11px -apple-system,sans-serif';
+  ctx.textAlign='center';
+  ctx.font='15px -apple-system,sans-serif';
+  ctx.fillText('Stock Return', 0, 0);
+  ctx.restore();
 
   for(let v=-rMax;v<=rMax;v++){
     if(Math.abs(v)%Math.max(1,Math.round(rMax/4))!==0&&v!==0) continue;
@@ -200,6 +241,23 @@ function drawFrame(fi){
     ctx.fillText(lbl,cx,H-PAD_B+20);
     if(i>0){ctx.beginPath();ctx.moveTo(PAD_L+i*colW,PAD_T);ctx.lineTo(PAD_L+i*colW,H-PAD_B);ctx.strokeStyle='rgba(0,0,0,0.08)';ctx.lineWidth=0.8;ctx.stroke();}
   });
+
+  // SPY点線を描画
+  if(frame.spyRet !== null && frame.spyRet !== undefined){
+    const spyY = toY(frame.spyRet);
+    ctx.beginPath();
+    ctx.setLineDash([6,4]);
+    ctx.moveTo(PAD_L, spyY);
+    ctx.lineTo(W-PAD_R, spyY);
+    ctx.strokeStyle='rgba(100,100,100,0.6)';
+    ctx.lineWidth=1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(80,80,80,0.9)';
+    ctx.font='15px -apple-system,sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText('SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', W-PAD_R-4, spyY-4);
+  }
 
   const rendered=[];
   frame.rows.forEach(row=>{
