@@ -216,8 +216,8 @@ function drawFrame(fi){
     ctx.setLineDash([]);
     ctx.fillStyle='rgba(80,80,80,0.7)';
     ctx.font='11px -apple-system,sans-serif';
-    ctx.textAlign='left';
-    ctx.fillText('SPY '+( frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', PAD_L+4, spyY-4);
+    ctx.textAlign='right';
+    ctx.fillText('SPY '+(frame.spyRet>0?'+':'')+frame.spyRet.toFixed(1)+'%', W-PAD_R-4, spyY-4);
   }
 
   const rendered=[];
