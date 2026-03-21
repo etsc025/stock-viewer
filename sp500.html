@@ -94,7 +94,7 @@ async function loadFromGitHub(){
       const text = await r.text();
       const parsed = parseCSV(text);
       frames.push({ts:f.name.replace('.csv',''),rows:parsed.rows,spyRet:parsed.spyRet});
-      rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
+      parsed.rows.forEach(r=>{ if(!jitterMap[r.ticker]) jitterMap[r.ticker]=hashFrac(r.ticker); });
     }
     document.getElementById('progress').textContent = frames.length+'フレーム読み込み完了';
     document.getElementById('ctrl').style.display='flex';
