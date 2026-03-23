@@ -1,0 +1,9 @@
+# SPY=0.0
+ticker,name,sector,return_pct,market_cap_b
+AMCR,Amcor,Materials,,18.1
+AEE,Ameren,Utilities,0.8,29.6
+AMD,Advanced Micro Devices,Information Technology,,337.4
+ADBE,Adobe Inc.,Information Technology,0.7,102.6
+COST,Costco,Consumer Staples,0.1,432.0
+CVS,CVS Health,Health Care,-0.22,90.7
+MMM,3M,Industrials,3.51,77.0
