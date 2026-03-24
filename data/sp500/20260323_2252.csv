@@ -1,6 +1,0 @@
-# SPY=0.0
-ticker,name,sector,return_pct,market_cap_b
-INCY,Incyte,Health Care,0.17,18.1
-ALGN,Align Technology,Health Care,2.88,12.8
-BBY,Best Buy,Consumer Discretionary,1.99,13.5
-GLW,Corning Inc.,Information Technology,,114.4
