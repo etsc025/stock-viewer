@@ -175,7 +175,8 @@ async function loadFromGitHub(){
   const listUrl = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/sp500';
   try {
     const res = await fetch(listUrl);
-    const files = await res.json();
+    const rawData = await res.json();
+    const files = Array.isArray(rawData) ? rawData : (rawData.tree || []);
     const csvFiles = files.filter(f=>f.name.endsWith('.csv') && f.size > 10).sort((a,b)=>a.name.localeCompare(b.name));
     document.getElementById('progress').textContent = csvFiles.length+'フレーム読み込み中...';
     frames=[];
