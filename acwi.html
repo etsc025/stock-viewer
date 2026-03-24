@@ -186,7 +186,7 @@ async function loadFromGitHub(){
     const res = await fetch(listUrl);
     const rawData = await res.json();
     const files = Array.isArray(rawData) ? rawData : (rawData.tree || []);
-    const csvFiles = files.filter(f=>f.name.endsWith('.csv') && f.size > 10).sort((a,b)=>a.name.localeCompare(b.name));
+    const csvFiles = files.filter(f=>f.name && f.name.endsWith('.csv') && (f.size === undefined || f.size > 10000)).sort((a,b)=>a.name.localeCompare(b.name));
     document.getElementById('progress').textContent = csvFiles.length+'フレームLoading...';
     frames=[];
     for(const f of csvFiles){
