@@ -1,0 +1,28 @@
+# SPY=0.0
+ticker,name,sector,return_pct,market_cap_b
+ABT,Abbott Laboratories,Health Care,-1.33,179.8
+MMM,3M,Industrials,0.16,77.3
+AOS,A. O. Smith,Industrials,0.74,9.1
+ACN,Accenture,Information Technology,-3.32,119.0
+ABBV,AbbVie,Health Care,-0.13,361.9
+ADBE,Adobe Inc.,Information Technology,-3.86,97.7
+AMD,Advanced Micro Devices,Information Technology,-1.02,327.1
+AES,AES Corporation,Utilities,0.28,10.1
+A,Agilent Technologies,Health Care,2.2,32.4
+AFL,Aflac,Financials,-0.31,55.7
+APD,Air Products,Materials,2.94,63.9
+ABNB,Airbnb,Consumer Discretionary,-2.66,77.4
+AKAM,Akamai Technologies,Information Technology,0.28,16.6
+ALB,Albemarle Corporation,Materials,4.24,20.6
+ARE,Alexandria Real Estate Equities,Real Estate,-0.3,8.3
+ALLE,Allegion,Industrials,0.96,12.5
+ALGN,Align Technology,Health Care,-1.04,12.8
+LNT,Alliant Energy,Utilities,1.66,18.1
+ALL,Allstate,Financials,0.82,54.4
+GOOGL,Alphabet Inc. (Class A),Communication Services,-3.28,3533.9
+GOOG,Alphabet Inc. (Class C),Communication Services,-3.1,3505.2
+MO,Altria,Consumer Staples,0.84,109.0
+AMZN,Amazon,Consumer Discretionary,-1.48,2222.2
+AMCR,Amcor,Materials,0.17,18.2
+AEE,Ameren,Utilities,1.47,30.0
+AEP,American Electric Power,Utilities,1.07,70.3
