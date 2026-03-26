@@ -276,9 +276,8 @@ function drawFrame(fi){
   const cW=W-PAD_L-PAD_R, cH=H-PAD_T-PAD_B;
   const nS=SECTORS.length, colW=cW/nS;
 
-  const allR=frame.rows.map(d=>d.return_pct);
-  const maxAbs=Math.max(...allR.map(Math.abs),3);
-  const rMax=Math.ceil(maxAbs);
+  // Y軸固定（±10%）
+  const rMax=10;
   const maxCap=Math.max(...frame.rows.map(d=>d.market_cap_b));
 
   function toY(r){return PAD_T+cH/2-(r/rMax)*(cH/2-6);}
