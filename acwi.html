@@ -61,8 +61,10 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
   <button onclick="stepFrame(-1)">◀ 前へ</button>
   <button onclick="stepFrame(1)">次へ ▶</button>
   <label style="font-size:12px;color:#8b949e;">速度</label>
-  <input type="range" id="speed" min="200" max="3000" value="500" step="100" oninput="updateSpeed()" style="width:80px;">
-  <span id="speedLabel" style="font-size:12px;color:#8b949e;">2.0x</span>
+  <button onclick="setSpeed(1000)" id="btn1x" style="font-size:11px;padding:2px 6px;background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:3px;cursor:pointer;">1x</button>
+  <button onclick="setSpeed(500)"  id="btn2x" style="font-size:11px;padding:2px 6px;background:#0D2137;color:#00B4D8;border:1px solid #00B4D8;border-radius:3px;cursor:pointer;">2x</button>
+  <button onclick="setSpeed(250)"  id="btn4x" style="font-size:11px;padding:2px 6px;background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:3px;cursor:pointer;">4x</button>
+  <button onclick="setSpeed(167)"  id="btn6x" style="font-size:11px;padding:2px 6px;background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:3px;cursor:pointer;">6x</button>
   <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
   <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
 </div>
@@ -237,11 +239,22 @@ function sliderChange(){
   drawFrame(currentFrame);
 }
 
-function updateSpeed(){
-  speed=parseInt(document.getElementById('speed').value);
-  const x=((3000-speed)/2800*1.8+0.2).toFixed(1);
-  document.getElementById('speedLabel').textContent=x+'x';
+function setSpeed(ms){
+  speed = ms;
+  // ボタンのハイライト更新
+  const map = {1000:'btn1x', 500:'btn2x', 250:'btn4x', 167:'btn6x'};
+  ['btn1x','btn2x','btn4x','btn6x'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(id === map[ms]){
+      el.style.background='#0D2137'; el.style.color='#00B4D8'; el.style.borderColor='#00B4D8';
+    } else {
+      el.style.background='#21262d'; el.style.color='#8b949e'; el.style.borderColor='#30363d';
+    }
+  });
+  if(playing){ clearTimeout(timer); autoPlay(); }
 }
+function updateSpeed(){ /* 後方互換 */ }
 
 function drawFrame(fi){
   const frame=frames[fi];
