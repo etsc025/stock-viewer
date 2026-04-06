@@ -2,237 +2,270 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ASIA Stock Viewer</title>
+<title>ASIA Bubble Chart</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #fff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 8px 16px; }
-.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
-button { background: #f0f0f0; border: 1px solid #e0e0e0; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-button:hover { background: #e0e0e0; }
-button.active { background: #6A1B9A; border-color: #6A1B9A; color: #fff; }
-select, input[type=text] { padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; }
-#loadArea { border: 2px dashed #CE93D8; border-radius: 8px; padding: 2rem; text-align: center; color: #888; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
-#loadArea:hover { background: #F3E5F5; }
-#progress { font-size: 12px; color: #888; margin-bottom: 8px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th { background: #F3E5F5; padding: 6px 8px; text-align: left; border-bottom: 2px solid #CE93D8; cursor: pointer; white-space: nowrap; font-size: 12px; color: #4A148C; }
-th:hover { background: #E1BEE7; }
-td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
-tr:hover td { background: #FAF5FF; }
-.buy  { color: #2E7D32; font-weight: 700; }
-.sell { color: #C62828; font-weight: 700; }
-.hold { color: #E65100; font-weight: 700; }
-.bar-bg { display: inline-block; background: #eee; border-radius: 3px; height: 6px; width: 70px; vertical-align: middle; }
-.bar-fill { height: 6px; border-radius: 3px; display: block; }
-.pos { color: #2E7D32; } .neg { color: #C62828; }
-.filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+body { background: #0d1117; color: #c9d1d9; font-family: -apple-system,sans-serif; padding: 8px 16px; }
+button { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+button:hover { background: #30363d; }
+button.active { background: #1a3a5c; color: #58a6ff; border-color: #58a6ff; }
+canvas { display: block; width: 100%; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; cursor: pointer; }
+.li.dim { opacity: 0.25; }
+.ld { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.tip { position: fixed; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.7; color: #c9d1d9; }
+#spd button { font-size: 10px; padding: 2px 7px; }
 </style>
 </head>
 <body>
-<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0 0.5rem;">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.4rem 0 0.25rem;">
   <div>
-    <div style="font-size:28px;font-weight:700;line-height:1.1">ASIA <span style="font-size:16px;color:#888;">アジア株スコア</span></div>
-    <div style="font-size:18px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+    <div style="font-size:28px;font-weight:700;line-height:1.1;color:#e6edf3;">ASIA <span style="font-size:16px;color:#8b949e;">国別バブルチャート</span></div>
+    <div style="font-size:20px;color:#8b949e;margin-top:2px" id="timeLabel">読み込み中...</div>
   </div>
-  <a href="index.html" style="font-size:13px;color:#6A1B9A;text-decoration:none;">← メニュー</a>
+  <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px;margin-right:16px;">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">Bubble = 時価総額</div>
+    <div style="display:flex;align-items:flex-end;gap:12px;">
+      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(100,180,255,0.15)" stroke="rgba(100,180,255,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Large</div></div>
+      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(100,180,255,0.15)" stroke="rgba(100,180,255,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Mid</div></div>
+      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(100,180,255,0.15)" stroke="rgba(100,180,255,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Small</div></div>
+    </div>
+  </div>
+  <div style="text-align:right;padding-top:4px;">
+    <a href="index.html" style="font-size:13px;color:#58a6ff;text-decoration:none;">← メニュー</a>
+  </div>
 </div>
 
-<div id="loadArea">
-  <span id="loadMsg">📡 GitHubからデータを自動読み込み中...</span>
-</div>
-<div id="progress"></div>
-
-<div class="controls" id="ctrl" style="display:none">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;" id="ctrl" style="display:none">
+  <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
   <button onclick="stepFrame(-1)">◀ 前へ</button>
   <button onclick="stepFrame(1)">次へ ▶</button>
-  <span id="frameLabel" style="font-size:12px;color:#888;"></span>
+  <div id="spd" style="display:flex;gap:3px;">
+    <button onclick="setSpeed(1000,'btn1x')" id="btn1x">1x</button>
+    <button onclick="setSpeed(500,'btn2x')"  id="btn2x" class="active">2x</button>
+    <button onclick="setSpeed(250,'btn4x')"  id="btn4x">4x</button>
+    <button onclick="setSpeed(167,'btn6x')"  id="btn6x">6x</button>
+  </div>
+  <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
+  <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
 </div>
-<div class="filter-row" id="filterRow" style="display:none">
-  <select id="filterJudge" onchange="renderTable()">
-    <option value="">全て</option>
-    <option value="BUY">🟢 BUYのみ</option>
-    <option value="SELL">🔴 SELLのみ</option>
-    <option value="HOLD">🟡 HOLDのみ</option>
-  </select>
-  <input type="text" id="searchTicker" placeholder="銘柄検索..." style="width:130px;" oninput="renderTable()">
-  <select id="sortCol" onchange="renderTable()">
-    <option value="score">スコア順</option>
-    <option value="rsi">RSI順</option>
-    <option value="momentum_1w">週次騰落率</option>
-    <option value="momentum_1m">月次騰落率</option>
-    <option value="momentum_3m">3ヶ月騰落率</option>
-  </select>
-  <span id="countLabel" style="font-size:12px;color:#888;"></span>
-</div>
-
-<div style="overflow-x:auto;">
-<table id="tbl">
-  <thead><tr id="thead"></tr></thead>
-  <tbody id="tbody"></tbody>
-</table>
-</div>
+<div id="progress" style="font-size:12px;color:#8b949e;margin-bottom:6px;"></div>
+<div id="loadMsg" style="font-size:13px;color:#8b949e;padding:1rem 0;">📡 GitHubからASIAデータを読み込み中...</div>
+<canvas id="cv" height="520" style="display:none;"></canvas>
+<div class="legend" id="leg"></div>
+<div class="tip" id="tip"></div>
 
 <script>
-let frames=[], cur=0;
+// ── 国カラー定義（tickerサフィックスで判定）──
+const COUNTRY_MAP = {
+  '.HK': 'Hong Kong',
+  '.KS': 'Korea',
+  '.SS': 'China (A)',
+  '.T':  'Japan',
+  '.SI': 'Singapore',
+};
+const COLORS = {
+  'Hong Kong':   '#58a6ff',
+  'Korea':       '#f85149',
+  'China (A)':   '#f48fb1',
+  'Japan':       '#ffa657',
+  'Singapore':   '#3fb950',
+  'Other':       '#8b949e',
+};
+const REGIONS = Object.keys(COLORS);
+
+function getCountry(ticker){
+  for(const [sfx, country] of Object.entries(COUNTRY_MAP)){
+    if(ticker.endsWith(sfx)) return country;
+  }
+  return 'Other';
+}
+
+let frames=[], cur=0, playing=false, timer=null, speed=500;
+let hidden=new Set(), jitter={};
+function hash(s){let h=0;for(let c of s)h=(h*31+c.charCodeAt(0))>>>0;return h/0xFFFFFFFF;}
 
 function parseCSV(text){
   const lines=text.trim().split('\n');
-  let si=0; while(si<lines.length&&lines[si].startsWith('#'))si++;
-  const hdrs=lines[si].split(',').map(h=>h.trim());
-  return lines.slice(si+1).map(l=>{
-    // signalsカラムはクォートで囲まれているため特別処理
-    const parts=smartSplit(l);
-    const o={}; hdrs.forEach((h,i)=>o[h]=(parts[i]||'').trim().replace(/^"|"$/g,''));
+  let hi=lines.findIndex(l=>l.trim().startsWith('ticker'));
+  if(hi<0) return [];
+  const hdrs=lines[hi].split(',').map(h=>h.trim());
+  return lines.slice(hi+1).map(l=>{
+    if(!l.trim()) return null;
+    const vals=[]; let cur='',inQ=false;
+    for(let i=0;i<l.length;i++){
+      if(l[i]==='"'){inQ=!inQ;}
+      else if(l[i]===','&&!inQ){vals.push(cur.trim());cur='';}
+      else cur+=l[i];
+    }
+    vals.push(cur.trim());
+    const o={}; hdrs.forEach((h,i)=>o[h]=vals[i]||'');
     if(!o.ticker) return null;
+    const country=getCountry(o.ticker);
+    // market_cap_b がないためスコアをバブルサイズ代替に使う（abs値）
+    const cap=Math.max(Math.abs(parseFloat(o.score)||0)+1, 1);
     return {
-      ticker:o.ticker, price:parseFloat(o.price)||0,
-      judgment:o.judgment||'HOLD', score:parseInt(o.score)||0,
-      rsi:parseFloat(o.rsi)||0, macd:parseFloat(o.macd_diff)||0,
-      bb_pct:parseFloat(o.bb_pct)||0,
-      momentum_1w:parseFloat(o.momentum_1w)||0,
-      momentum_1m:parseFloat(o.momentum_1m)||0,
-      momentum_3m:parseFloat(o.momentum_3m)||0,
-      vol_ratio:parseFloat(o.vol_ratio)||0,
-      pe:parseFloat(o.pe_ratio)||0,
-      signals:o.signals||''
+      ticker:   o.ticker,
+      country:  country,
+      ret:      parseFloat(o.momentum_1w)||0,   // 週次騰落をY軸
+      score:    parseInt(o.score)||0,
+      rsi:      parseFloat(o.rsi)||0,
+      judgment: o.judgment||'HOLD',
+      cap:      cap,   // バブルサイズ = |score|+1
+      price:    parseFloat(o.price)||0,
+      mom1m:    parseFloat(o.momentum_1m)||0,
     };
   }).filter(Boolean);
 }
 
-function smartSplit(line){
-  const res=[]; let cur='',inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){inQ=!inQ;cur+=c;}
-    else if(c===','&&!inQ){res.push(cur);cur='';}
-    else cur+=c;
-  }
-  res.push(cur); return res;
-}
-
-async function loadFiles(files){
-  const arr=[...files].filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
-  frames=[];
-  document.getElementById('progress').textContent=`読み込み中... 0/${arr.length}`;
-  for(let i=0;i<arr.length;i++){
-    const text=await arr[i].text();
-    const rows=parseCSV(text);
-    if(rows.length>0){
-      const ts=arr[i].name.replace('_asia','').replace('.csv','');
-      frames.push({ts,rows});
-    }
-    document.getElementById('progress').textContent=`読み込み中... ${i+1}/${arr.length}`;
-  }
-  if(frames.length>0){
-    document.getElementById('loadArea').style.display='none';
-    document.getElementById('ctrl').style.display='flex';
-    document.getElementById('filterRow').style.display='flex';
-    cur=frames.length-1;
-    renderTable();
-  }
-  document.getElementById('progress').textContent=`${frames.length}ファイル読み込み完了`;
-}
-
-function stepFrame(d){
-  cur=(cur+d+frames.length)%frames.length;
-  renderTable();
-}
-
-function renderTable(){
-  if(!frames.length) return;
-  const fr=frames[cur];
-  const ts=fr.ts; let label=ts;
-  if(ts.length>=12) label=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
-  document.getElementById('timeLabel').textContent=label;
-  document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
-
-  const judge=document.getElementById('filterJudge').value;
-  const search=document.getElementById('searchTicker').value.toLowerCase();
-  const sortKey=document.getElementById('sortCol').value;
-
-  let rows=[...fr.rows];
-  if(judge) rows=rows.filter(r=>r.judgment===judge);
-  if(search) rows=rows.filter(r=>r.ticker.toLowerCase().includes(search));
-  rows.sort((a,b)=>b[sortKey]-a[sortKey]);
-
-  document.getElementById('countLabel').textContent=`${rows.length}件`;
-
-  // ヘッダー
-  document.getElementById('thead').innerHTML=`
-    <th>銘柄</th><th>価格</th><th>判定</th>
-    <th>スコア</th><th>RSI</th><th>MACD</th><th>BB%</th>
-    <th>週次%</th><th>月次%</th><th>3ヶ月%</th>
-    <th>出来高比</th><th>PER</th>`;
-
-  const tbody=document.getElementById('tbody');
-  tbody.innerHTML='';
-  rows.slice(0,200).forEach(r=>{
-    const cls=r.judgment==='BUY'?'buy':r.judgment==='SELL'?'sell':'hold';
-    const bw=Math.min(100,Math.abs(r.score));
-    const bc=r.score>0?'#4CAF50':'#F44336';
-    const fmt=(v,d=1)=>`<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(d)}%</span>`;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td><b>${r.ticker}</b></td>
-      <td>${r.price.toFixed(2)}</td>
-      <td class="${cls}">${r.judgment==='BUY'?'🟢':r.judgment==='SELL'?'🔴':'🟡'} ${r.judgment}</td>
-      <td>${r.score} <span class="bar-bg"><span class="bar-fill" style="width:${bw}%;background:${bc}"></span></span></td>
-      <td style="color:${r.rsi>70?'#C62828':r.rsi<30?'#2E7D32':'#555'}">${r.rsi.toFixed(1)}</td>
-      <td class="${r.macd>=0?'pos':'neg'}">${r.macd>=0?'+':''}${r.macd.toFixed(3)}</td>
-      <td style="color:${r.bb_pct>80?'#C62828':r.bb_pct<20?'#2E7D32':'#555'}">${r.bb_pct.toFixed(1)}</td>
-      <td>${fmt(r.momentum_1w)}</td>
-      <td>${fmt(r.momentum_1m)}</td>
-      <td>${fmt(r.momentum_3m)}</td>
-      <td style="color:${r.vol_ratio>1.5?'#E65100':'#555'}">${r.vol_ratio.toFixed(2)}x</td>
-      <td>${r.pe>0?r.pe.toFixed(1):'-'}</td>`;
-    tr.style.cursor='pointer';
-    tr.onclick=()=>alert(`${r.ticker}\n判定: ${r.judgment} (スコア:${r.score})\nRSI: ${r.rsi.toFixed(1)} | MACD: ${r.macd.toFixed(3)} | BB%: ${r.bb_pct.toFixed(1)}\n週次: ${r.momentum_1w.toFixed(1)}% | 月次: ${r.momentum_1m.toFixed(1)}%\n出来高比: ${r.vol_ratio.toFixed(2)}x\n\nシグナル:\n${r.signals.replace(/['\[\]]/g,'').trim()||'なし'}`);
-    tbody.appendChild(tr);
-  });
-}
-
-document.body.addEventListener('dragover',e=>e.preventDefault());
-document.body.addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.csv'));if(f.length)loadFiles(f);});
-
-// GitHubから自動読み込み
 async function loadFromGitHub(){
-  const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/asia/';
-  const api  = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/asia';
-  try {
-    document.getElementById('loadMsg').textContent = '📡 GitHubからASIAデータを読み込み中...';
-    const res = await fetch(api);
-    const list = await res.json();
-    const csvFiles = (Array.isArray(list)?list:[])
-      .filter(f=>f.name&&f.name.endsWith('.csv'))
-      .sort((a,b)=>a.name.localeCompare(b.name));
-    if(csvFiles.length===0){
-      document.getElementById('loadMsg').textContent = '⚠️ データなし（CSVをドロップしてください）';
-      return;
-    }
-    document.getElementById('progress').textContent = `${csvFiles.length}件 読み込み中...`;
+  const base='https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/asia/';
+  const api ='https://api.github.com/repos/etsc025/stock-viewer/contents/data/asia';
+  try{
+    const res=await fetch(api);
+    const list=await res.json();
+    const csvFiles=(Array.isArray(list)?list:[]).filter(f=>f.name&&f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!csvFiles.length){document.getElementById('loadMsg').textContent='⚠️ データなし';return;}
+    document.getElementById('progress').textContent=`${csvFiles.length}件 読み込み中...`;
     frames=[];
     for(const f of csvFiles){
-      const r = await fetch(base+f.name);
-      const text = await r.text();
-      const rows = parseCSV(text);
+      const r=await fetch(base+f.name);
+      const text=await r.text();
+      const rows=parseCSV(text);
       if(rows.length>0){
         const ts=f.name.replace('_asia','').replace('.csv','');
+        rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
         frames.push({ts,rows});
       }
     }
-    document.getElementById('progress').textContent = `${frames.length}フレーム読み込み完了`;
+    document.getElementById('progress').textContent=`${frames.length}フレーム読み込み完了`;
     if(frames.length>0){
-      document.getElementById('loadArea').style.display='none';
+      document.getElementById('loadMsg').style.display='none';
+      document.getElementById('cv').style.display='block';
+      document.getElementById('ctrl').style.removeProperty('display');
       document.getElementById('ctrl').style.display='flex';
-      document.getElementById('filterRow').style.display='flex';
-      cur=frames.length-1;
-      renderTable();
+      const sl=document.getElementById('slider'); sl.max=frames.length-1; sl.value=frames.length-1;
+      cur=frames.length-1; buildLegend(); draw();
     }
-  } catch(e) {
-    document.getElementById('loadMsg').textContent = '❌ 読み込みエラー: '+e.message;
-    document.getElementById('progress').textContent = '';
-  }
+  }catch(e){document.getElementById('loadMsg').textContent='❌ '+e.message;}
 }
+
+function buildLegend(){
+  const leg=document.getElementById('leg'); leg.innerHTML='';
+  REGIONS.forEach(region=>{
+    const d=document.createElement('div'); d.className='li'+(hidden.has(region)?' dim':'');
+    d.innerHTML=`<div class="ld" style="background:${COLORS[region]}"></div>${region}`;
+    d.onclick=()=>{hidden.has(region)?hidden.delete(region):hidden.add(region);d.classList.toggle('dim');draw();};
+    leg.appendChild(d);
+  });
+}
+
+function draw(){
+  if(!frames.length) return;
+  const fr=frames[cur];
+  const cv=document.getElementById('cv');
+  const dpr=devicePixelRatio||1;
+  const W=cv.offsetWidth*dpr, H=520*dpr;
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  // タイムスタンプ
+  const ts=fr.ts; let lbl=ts;
+  if(ts.length>=12) lbl=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
+  document.getElementById('timeLabel').textContent=lbl;
+  document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
+
+  const PAD_L=58,PAD_R=8,PAD_T=20,PAD_B=56;
+  const cW=W-PAD_L-PAD_R, cH=H-PAD_T-PAD_B;
+  const nS=REGIONS.length, colW=cW/nS;
+
+  // Y軸固定 ±10%（S&P500・ACWIと同一）
+  const rMax=10;
+  const maxCap=Math.max(...fr.rows.map(d=>d.cap), 1);
+
+  function toY(r){return PAD_T+cH/2-(r/rMax)*(cH/2-6);}
+  function bR(c){return Math.max(4, Math.sqrt(c/maxCap)*52);}
+
+  // グリッド
+  [-10,-5,0,5,10].forEach(v=>{
+    const y=toY(v); const isZ=(v===0);
+    ctx.strokeStyle=isZ?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.05)';
+    ctx.lineWidth=isZ?1.5:0.8;
+    ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(W-PAD_R,y); ctx.stroke();
+    ctx.fillStyle='rgba(180,180,180,0.7)'; ctx.font=`${10*dpr}px sans-serif`;
+    ctx.textAlign='right'; ctx.fillText((v>0?'+':'')+v+'%', PAD_L-4, y+4);
+  });
+
+  // 列ヘッダー＆区切り
+  REGIONS.forEach((region,i)=>{
+    const x=PAD_L+colW*(i+0.5);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, H-PAD_B); ctx.stroke();
+    ctx.fillStyle='rgba(140,140,140,0.8)'; ctx.font=`bold ${10*dpr}px sans-serif`;
+    ctx.textAlign='center';
+    ctx.fillText(region, x, H-PAD_B+16);
+  });
+
+  // バブル描画
+  fr.rows.forEach(row=>{
+    const si=REGIONS.indexOf(row.country); if(si<0) return;
+    const jx=jitter[row.ticker]||0.5;
+    const cx=PAD_L+colW*(si+0.15+jx*0.7);
+    const cy=toY(Math.max(-10,Math.min(10,row.ret)));
+    const r=bR(row.cap);
+    const col=COLORS[row.country]||'#8b949e';
+    const dim=hidden.has(row.country);
+    // 判定色リング
+    const ringCol=row.judgment==='BUY'?'#3fb950':row.judgment==='SELL'?'#f85149':'#e3b341';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=col+(dim?'18':'55'); ctx.fill();
+    ctx.strokeStyle=dim?ringCol+'33':ringCol; ctx.lineWidth=dim?0.5:1.5; ctx.stroke();
+    if(r>12&&!dim){
+      ctx.fillStyle=col; ctx.font=`bold ${Math.max(8,8*dpr)}px sans-serif`;
+      ctx.textAlign='center'; ctx.fillText(row.ticker.split('.')[0],cx,cy+3);
+    }
+    row._cx=cx; row._cy=cy; row._r=r;
+  });
+}
+
+// ツールチップ
+document.getElementById('cv').addEventListener('mousemove',e=>{
+  if(!frames.length) return;
+  const cv=document.getElementById('cv');
+  const rc=cv.getBoundingClientRect();
+  const dpr=devicePixelRatio||1;
+  const mx=(e.clientX-rc.left)*dpr, my=(e.clientY-rc.top)*dpr;
+  const tip=document.getElementById('tip');
+  const fr=frames[cur]; let found=null;
+  for(const row of fr.rows){
+    if(row._cx&&Math.hypot(row._cx-mx,row._cy-my)<(row._r||10)+4){found=row;break;}
+  }
+  if(found){
+    const judgIcon=found.judgment==='BUY'?'🟢':found.judgment==='SELL'?'🔴':'🟡';
+    tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-28)+'px';
+    tip.innerHTML=`<b>${found.ticker}</b><br>国: ${found.country}<br>${judgIcon} ${found.judgment} (スコア:${found.score})<br>週次: ${found.ret>0?'+':''}${found.ret.toFixed(2)}% | 月次: ${found.mom1m>0?'+':''}${found.mom1m.toFixed(2)}%<br>RSI: ${found.rsi.toFixed(1)} | 価格: ${found.price}`;
+  } else tip.style.display='none';
+});
+document.getElementById('cv').addEventListener('mouseleave',()=>{document.getElementById('tip').style.display='none';});
+
+// コントロール
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('btnPlay').textContent=playing?'⏹ 停止':'▶ 再生';
+  if(playing){function step(){if(!playing)return;stepFrame(1);timer=setTimeout(step,speed);}step();}
+  else clearTimeout(timer);
+}
+function stepFrame(d){cur=(cur+d+frames.length)%frames.length;document.getElementById('slider').value=cur;draw();}
+function sliderChange(){cur=+document.getElementById('slider').value;draw();}
+function setSpeed(ms,id){
+  speed=ms;
+  document.querySelectorAll('#spd button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+window.addEventListener('resize',()=>{if(frames.length)draw();});
 loadFromGitHub();
 </script>
 </body>

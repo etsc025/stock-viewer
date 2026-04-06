@@ -5,62 +5,57 @@
 <title>N225 Bubble Chart</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #ffffff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 8px 16px; }
-.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-button { background: #f0f0f0; border: 1px solid #e0e0e0; color: #1a1a1a; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-button:hover { background: #e0e0e0; }
-button.active { background: #E65100; border-color: #E65100; color: #fff; }
-canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff; }
+body { background: #0d1117; color: #c9d1d9; font-family: -apple-system,sans-serif; padding: 8px 16px; }
+button { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+button:hover { background: #30363d; }
+button.active { background: #1a3a5c; color: #58a6ff; border-color: #58a6ff; }
+canvas { display: block; width: 100%; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
-.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; cursor: pointer; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; cursor: pointer; }
 .li.dim { opacity: 0.25; }
-.ld { width: 9px; height: 9px; border-radius: 50%; }
-.tip { position: fixed; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.6; max-width: 280px; }
-#loadArea { border: 2px dashed #FFB74D; border-radius: 8px; padding: 2rem; text-align: center; color: #888; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
-#loadArea:hover { background: #FFF3E0; }
-#progress { font-size: 12px; color: #888; margin-bottom: 8px; }
+.ld { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.tip { position: fixed; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.7; color: #c9d1d9; }
+#spd button { font-size: 10px; padding: 2px 7px; }
 </style>
 </head>
 <body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.5rem 0 0.25rem;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.4rem 0 0.25rem;">
   <div>
-    <div style="font-size:28px;font-weight:700;line-height:1.1">N225 <span style="font-size:16px;color:#888;">東証33業種</span></div>
-    <div style="font-size:20px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+    <div style="font-size:28px;font-weight:700;line-height:1.1;color:#e6edf3;">N225 <span style="font-size:16px;color:#8b949e;">東証33業種</span></div>
+    <div style="font-size:20px;color:#8b949e;margin-top:2px" id="timeLabel">読み込み中...</div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px;margin-right:16px;">
-    <div style="font-size:12px;color:#888;margin-bottom:6px;">Bubble = 時価総額</div>
+    <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">Bubble = 時価総額</div>
     <div style="display:flex;align-items:flex-end;gap:12px;">
-      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Large</div></div>
-      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Mid</div></div>
-      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Small</div></div>
+      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Large</div></div>
+      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Mid</div></div>
+      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Small</div></div>
     </div>
   </div>
-  <div style="text-align:right;padding-top:4px;">
-    <a href="index.html" style="font-size:13px;color:#E65100;text-decoration:none;">← メニュー</a>
-  </div>
+  <a href="index.html" style="font-size:13px;color:#58a6ff;text-decoration:none;padding-top:4px;">← メニュー</a>
 </div>
-<div class="controls" id="ctrl" style="display:none">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;display:none;" id="ctrl">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
   <button onclick="stepFrame(-1)">◀ 前へ</button>
   <button onclick="stepFrame(1)">次へ ▶</button>
-  <label style="font-size:12px;color:#888;">速度</label>
-  <button onclick="setSpeed(1000)">1x</button>
-  <button onclick="setSpeed(500)" class="active">2x</button>
-  <button onclick="setSpeed(250)">4x</button>
-  <input type="range" id="slider" min="0" value="0" style="width:160px;" oninput="sliderChange()">
-  <span id="frameLabel" style="font-size:12px;color:#888;"></span>
+  <div id="spd" style="display:flex;gap:3px;">
+    <button onclick="setSpeed(1000,'btn1x')" id="btn1x">1x</button>
+    <button onclick="setSpeed(500,'btn2x')"  id="btn2x" class="active">2x</button>
+    <button onclick="setSpeed(250,'btn4x')"  id="btn4x">4x</button>
+    <button onclick="setSpeed(167,'btn6x')"  id="btn6x">6x</button>
+  </div>
+  <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
+  <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
 </div>
-<div id="progress"></div>
-<div id="loadArea">
-  <span id="loadMsg">📡 GitHubからデータを自動読み込み中...</span>
-</div>
-<canvas id="cv" height="520" style="display:none"></canvas>
+<div id="progress" style="font-size:12px;color:#8b949e;margin-bottom:6px;"></div>
+<div id="loadMsg" style="font-size:13px;color:#8b949e;padding:1rem 0;">📡 GitHubからN225データを読み込み中...</div>
+<canvas id="cv" height="520" style="display:none;"></canvas>
 <div class="legend" id="leg"></div>
 <div class="tip" id="tip"></div>
 
 <script>
-const COLORS = {
-  '水産・農林業':'#1B5E20','鉱業':'#37474F','建設業':'#6D4C41',
+const COLORS={
+  '水産・農林業':'#1B5E20','鉱業':'#546E7A','建設業':'#6D4C41',
   '食料品':'#558B2F','繊維製品':'#33691E','パルプ・紙':'#827717',
   '化学':'#F57C00','医薬品':'#00838F','石油・石炭製品':'#263238',
   'ゴム製品':'#880E4F','ガラス・土石製品':'#4E342E','鉄鋼':'#546E7A',
@@ -72,47 +67,54 @@ const COLORS = {
   '銀行業':'#0097A7','証券、商品先物取引業':'#B71C1C','保険業':'#C62828',
   'その他金融業':'#1A237E','不動産業':'#6A1B9A','サービス業':'#00796B'
 };
-const SECTORS = Object.keys(COLORS);
-let frames=[], cur=0, playing=false, timer=null, speed=500;
-let hidden=new Set(), jitter={};
+const SECTORS=Object.keys(COLORS);
+let frames=[],cur=0,playing=false,timer=null,speed=500;
+let hidden=new Set(),jitter={};
 function hash(s){let h=0;for(let c of s)h=(h*31+c.charCodeAt(0))>>>0;return h/0xFFFFFFFF;}
 
 function parseCSV(text){
   const lines=text.trim().split('\n');
-  let si=0; while(si<lines.length && lines[si].startsWith('#')) si++;
+  let si=0; while(si<lines.length&&lines[si].startsWith('#'))si++;
   const hdrs=lines[si].split(',').map(h=>h.trim());
   return lines.slice(si+1).map(l=>{
     const v=l.split(',').map(s=>s.trim());
+    if(!v[0]) return null;
     const o={}; hdrs.forEach((h,i)=>o[h]=v[i]||'');
     return {ticker:o.ticker,name:o.name,sector:o.sector,
             ret:parseFloat(o.return_pct)||0,cap:parseFloat(o.market_cap_b)||0};
-  }).filter(r=>r.ticker&&r.cap>0);
+  }).filter(r=>r&&r.ticker&&r.cap>0);
 }
 
-async function loadFiles(files){
-  const arr=[...files].filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
-  frames=[];
-  document.getElementById('progress').textContent=`読み込み中... 0/${arr.length}`;
-  for(let i=0;i<arr.length;i++){
-    const text=await arr[i].text();
-    const rows=parseCSV(text);
-    if(rows.length>0){
-      const ts=arr[i].name.replace('.csv','');
-      rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
-      frames.push({ts,rows});
+async function loadFromGitHub(){
+  const base='https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/n225/';
+  const api ='https://api.github.com/repos/etsc025/stock-viewer/contents/data/n225';
+  try{
+    const res=await fetch(api);
+    const list=await res.json();
+    const csvFiles=(Array.isArray(list)?list:[]).filter(f=>f.name&&f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!csvFiles.length){document.getElementById('loadMsg').textContent='⚠️ データなし';return;}
+    document.getElementById('progress').textContent=`${csvFiles.length}件 読み込み中...`;
+    frames=[];
+    for(const f of csvFiles){
+      const r=await fetch(base+f.name);
+      const text=await r.text();
+      const rows=parseCSV(text);
+      if(rows.length>0){
+        const ts=f.name.replace('.csv','');
+        rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
+        frames.push({ts,rows});
+      }
     }
-    document.getElementById('progress').textContent=`読み込み中... ${i+1}/${arr.length}`;
-  }
-  if(frames.length>0){
-    document.getElementById('loadArea').style.display='none';
-    document.getElementById('cv').style.display='block';
-    document.getElementById('ctrl').style.display='flex';
-    const sl=document.getElementById('slider');
-    sl.max=frames.length-1; sl.value=frames.length-1;
-    cur=frames.length-1;
-    buildLegend(); draw();
-  }
-  document.getElementById('progress').textContent=`${frames.length}ファイル読み込み完了`;
+    document.getElementById('progress').textContent=`${frames.length}フレーム読み込み完了`;
+    if(frames.length>0){
+      document.getElementById('loadMsg').style.display='none';
+      document.getElementById('cv').style.display='block';
+      const ctrl=document.getElementById('ctrl');
+      ctrl.style.removeProperty('display'); ctrl.style.display='flex';
+      const sl=document.getElementById('slider'); sl.max=frames.length-1; sl.value=frames.length-1;
+      cur=frames.length-1; buildLegend(); draw();
+    }
+  }catch(e){document.getElementById('loadMsg').textContent='❌ '+e.message;}
 }
 
 function buildLegend(){
@@ -130,125 +132,80 @@ function draw(){
   if(!frames.length) return;
   const fr=frames[cur];
   const cv=document.getElementById('cv');
-  const W=cv.offsetWidth*devicePixelRatio, H=520*devicePixelRatio;
+  const dpr=devicePixelRatio||1;
+  const W=cv.offsetWidth*dpr, H=520*dpr;
   cv.width=W; cv.height=H;
   const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,W,H);
 
-  // タイムラベル更新
-  const ts=fr.ts; let label=ts;
-  if(ts.length>=12) label=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
-  document.getElementById('timeLabel').textContent=label;
+  const ts=fr.ts; let lbl=ts;
+  if(ts.length>=12) lbl=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
+  document.getElementById('timeLabel').textContent=lbl;
   document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
 
   const active=[...new Set(fr.rows.map(r=>r.sector))].filter(s=>COLORS[s]).sort();
-  const nS=active.length; if(!nS) return;
-  const PAD=55, colW=(W-PAD*2)/nS;
-  const rets=fr.rows.map(d=>d.ret).filter(isFinite);
-  const maxR=Math.max(Math.abs(Math.min(...rets)),Math.abs(Math.max(...rets)),0.01);
-  const maxCap=Math.max(...fr.rows.map(d=>d.cap),0.01);
-  const toY=r=>H/2-(r/maxR)*(H/2-PAD*1.2);
-  const bR=cap=>Math.max(3,Math.min(36,Math.sqrt(cap/maxCap)*38*devicePixelRatio));
+  if(!active.length) return;
+  const PAD_L=58,PAD_R=8,PAD_T=20,PAD_B=56;
+  const cW=W-PAD_L-PAD_R, cH=H-PAD_T-PAD_B;
+  const nS=active.length, colW=cW/nS;
+
+  // Y軸固定 ±10%（S&P500・ACWIと統一）
+  const rMax=10;
+  const maxCap=Math.max(...fr.rows.map(d=>d.cap),1);
+  function toY(r){return PAD_T+cH/2-(r/rMax)*(cH/2-6);}
+  function bR(c){return Math.max(4,Math.sqrt(c/maxCap)*52);}
 
   // グリッド
-  ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(PAD,H/2); ctx.lineTo(W-PAD,H/2); ctx.stroke();
+  [-10,-5,0,5,10].forEach(v=>{
+    const y=toY(v); const isZ=(v===0);
+    ctx.strokeStyle=isZ?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.05)';
+    ctx.lineWidth=isZ?1.5:0.8;
+    ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(W-PAD_R,y); ctx.stroke();
+    ctx.fillStyle='rgba(180,180,180,0.7)'; ctx.font=`${10*dpr}px sans-serif`;
+    ctx.textAlign='right'; ctx.fillText((v>0?'+':'')+v+'%',PAD_L-4,y+4);
+  });
+
   active.forEach((s,i)=>{
-    const x=PAD+colW*(i+0.5);
-    ctx.beginPath(); ctx.moveTo(x,PAD); ctx.lineTo(x,H-PAD); ctx.strokeStyle='#f5f5f5'; ctx.stroke();
-    ctx.fillStyle='#bbb'; ctx.font=`${Math.max(8,9*devicePixelRatio)}px sans-serif`;
+    const x=PAD_L+colW*(i+0.5);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,H-PAD_B); ctx.stroke();
+    ctx.fillStyle='rgba(140,140,140,0.8)'; ctx.font=`${Math.max(7,8*dpr)}px sans-serif`;
     ctx.textAlign='center';
-    const lbl=s.length>8?s.slice(0,7)+'…':s;
-    ctx.fillText(lbl,x,H-8);
+    const lbl2=s.length>6?s.slice(0,5)+'…':s;
+    ctx.fillText(lbl2,x,H-PAD_B+16);
   });
 
-  // Y軸
-  ctx.fillStyle='#bbb'; ctx.font=`${9*devicePixelRatio}px sans-serif`; ctx.textAlign='right';
-  [-maxR,-maxR/2,0,maxR/2,maxR].forEach(v=>{
-    ctx.fillText((v>=0?'+':'')+v.toFixed(1)+'%',PAD-4,toY(v)+4);
-  });
-
-  // バブル
   fr.rows.forEach(row=>{
     const si=active.indexOf(row.sector); if(si<0) return;
     const jx=jitter[row.ticker]||0.5;
-    const cx=PAD+colW*(si+0.2+jx*0.6);
-    const cy=toY(row.ret);
+    const cx=PAD_L+colW*(si+0.15+jx*0.7);
+    const cy=toY(Math.max(-10,Math.min(10,row.ret)));
     const r=bR(row.cap);
-    const col=COLORS[row.sector]||'#888';
+    const col=COLORS[row.sector]||'#8b949e';
     const dim=hidden.has(row.sector);
     ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.fillStyle=col+(dim?'22':'88'); ctx.fill();
+    ctx.fillStyle=col+(dim?'18':'55'); ctx.fill();
     ctx.strokeStyle=dim?col+'33':col; ctx.lineWidth=dim?0.5:1.2; ctx.stroke();
-    if(r>12&&!dim){ctx.fillStyle=col;ctx.font=`bold ${Math.max(8,8*devicePixelRatio)}px sans-serif`;ctx.textAlign='center';ctx.fillText(row.ticker,cx,cy+3);}
+    if(r>12&&!dim){ctx.fillStyle=col;ctx.font=`bold ${Math.max(8,8*dpr)}px sans-serif`;ctx.textAlign='center';ctx.fillText(row.ticker,cx,cy+3);}
     row._cx=cx; row._cy=cy; row._r=r;
   });
 }
 
-// ツールチップ
 document.getElementById('cv').addEventListener('mousemove',e=>{
   if(!frames.length) return;
   const cv=document.getElementById('cv');
-  const rc=cv.getBoundingClientRect();
-  const mx=(e.clientX-rc.left)*devicePixelRatio, my=(e.clientY-rc.top)*devicePixelRatio;
+  const rc=cv.getBoundingClientRect(); const dpr=devicePixelRatio||1;
+  const mx=(e.clientX-rc.left)*dpr, my=(e.clientY-rc.top)*dpr;
   const tip=document.getElementById('tip');
   const fr=frames[cur]; let found=null;
   for(const row of fr.rows){if(row._cx&&Math.hypot(row._cx-mx,row._cy-my)<(row._r||10)+4){found=row;break;}}
   if(found){
     const s=found.ret>=0?'+':'';
     tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-28)+'px';
-    tip.innerHTML=`<b>${found.ticker}</b> ${found.name}<br>業種: ${found.sector}<br>前日比: ${s}${found.ret.toFixed(2)}%<br>時価総額: ¥${found.cap.toFixed(0)}B`;
+    tip.innerHTML=`<b>${found.ticker}</b> ${found.name}<br>業種: ${found.sector}<br>前日比: ${s}${found.ret.toFixed(2)}%<br>時価総額: ¥${found.cap.toFixed(1)}B`;
   } else tip.style.display='none';
 });
 document.getElementById('cv').addEventListener('mouseleave',()=>{document.getElementById('tip').style.display='none';});
-
-// ドロップ
-document.body.addEventListener('dragover',e=>e.preventDefault());
-document.body.addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.csv'));if(f.length)loadFiles(f);});
-
-// GitHubから自動読み込み
-async function loadFromGitHub(){
-  const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/n225/';
-  const api  = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/n225';
-  try {
-    document.getElementById('loadMsg').textContent = '📡 GitHubからN225データを読み込み中...';
-    const res = await fetch(api);
-    const list = await res.json();
-    const csvFiles = (Array.isArray(list)?list:[])
-      .filter(f=>f.name&&f.name.endsWith('.csv'))
-      .sort((a,b)=>a.name.localeCompare(b.name));
-    if(csvFiles.length===0){
-      document.getElementById('loadMsg').textContent = '⚠️ データなし（CSVをドロップしてください）';
-      return;
-    }
-    document.getElementById('progress').textContent = `${csvFiles.length}件 読み込み中...`;
-    frames=[];
-    for(const f of csvFiles){
-      const r = await fetch(base+f.name);
-      const text = await r.text();
-      const rows = parseCSV(text);
-      if(rows.length>0){
-        const ts=f.name.replace('.csv','');
-        rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
-        frames.push({ts,rows});
-      }
-    }
-    document.getElementById('progress').textContent = `${frames.length}フレーム読み込み完了`;
-    if(frames.length>0){
-      document.getElementById('loadArea').style.display='none';
-      document.getElementById('cv').style.display='block';
-      document.getElementById('ctrl').style.display='flex';
-      const sl=document.getElementById('slider');
-      sl.max=frames.length-1; sl.value=frames.length-1;
-      cur=frames.length-1;
-      buildLegend(); draw();
-    }
-  } catch(e) {
-    document.getElementById('loadMsg').textContent = '❌ 読み込みエラー: '+e.message;
-    document.getElementById('progress').textContent = '';
-  }
-}
-loadFromGitHub();
 
 function togglePlay(){
   playing=!playing;
@@ -258,8 +215,13 @@ function togglePlay(){
 }
 function stepFrame(d){cur=(cur+d+frames.length)%frames.length;document.getElementById('slider').value=cur;draw();}
 function sliderChange(){cur=+document.getElementById('slider').value;draw();}
-function setSpeed(s){speed=s;}
+function setSpeed(ms,id){
+  speed=ms;
+  document.querySelectorAll('#spd button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 window.addEventListener('resize',()=>{if(frames.length)draw();});
+loadFromGitHub();
 </script>
 </body>
 </html>
