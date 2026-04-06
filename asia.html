@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ASIA Stock Viewer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #fff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 8px 16px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+button { background: #f0f0f0; border: 1px solid #e0e0e0; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+button:hover { background: #e0e0e0; }
+button.active { background: #6A1B9A; border-color: #6A1B9A; color: #fff; }
+select, input[type=text] { padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; }
+#loadArea { border: 2px dashed #CE93D8; border-radius: 8px; padding: 2rem; text-align: center; color: #888; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+#loadArea:hover { background: #F3E5F5; }
+#progress { font-size: 12px; color: #888; margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #F3E5F5; padding: 6px 8px; text-align: left; border-bottom: 2px solid #CE93D8; cursor: pointer; white-space: nowrap; font-size: 12px; color: #4A148C; }
+th:hover { background: #E1BEE7; }
+td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+tr:hover td { background: #FAF5FF; }
+.buy  { color: #2E7D32; font-weight: 700; }
+.sell { color: #C62828; font-weight: 700; }
+.hold { color: #E65100; font-weight: 700; }
+.bar-bg { display: inline-block; background: #eee; border-radius: 3px; height: 6px; width: 70px; vertical-align: middle; }
+.bar-fill { height: 6px; border-radius: 3px; display: block; }
+.pos { color: #2E7D32; } .neg { color: #C62828; }
+.filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0 0.5rem;">
+  <div>
+    <div style="font-size:28px;font-weight:700;line-height:1.1">ASIA <span style="font-size:16px;color:#888;">アジア株スコア</span></div>
+    <div style="font-size:18px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+  </div>
+  <a href="index.html" style="font-size:13px;color:#6A1B9A;text-decoration:none;">← メニュー</a>
+</div>
+
+<div id="loadArea" onclick="document.getElementById('fi').click()">
+  ASIAフォルダのCSVをドロップ、またはクリックして選択<br>
+  <small style="color:#aaa;">Finderで *.csv を全選択 → ここにドロップ</small>
+  <input type="file" id="fi" accept=".csv" multiple style="display:none" onchange="loadFiles(this.files)">
+</div>
+<div id="progress"></div>
+
+<div class="controls" id="ctrl" style="display:none">
+  <button onclick="stepFrame(-1)">◀ 前へ</button>
+  <button onclick="stepFrame(1)">次へ ▶</button>
+  <span id="frameLabel" style="font-size:12px;color:#888;"></span>
+</div>
+<div class="filter-row" id="filterRow" style="display:none">
+  <select id="filterJudge" onchange="renderTable()">
+    <option value="">全て</option>
+    <option value="BUY">🟢 BUYのみ</option>
+    <option value="SELL">🔴 SELLのみ</option>
+    <option value="HOLD">🟡 HOLDのみ</option>
+  </select>
+  <input type="text" id="searchTicker" placeholder="銘柄検索..." style="width:130px;" oninput="renderTable()">
+  <select id="sortCol" onchange="renderTable()">
+    <option value="score">スコア順</option>
+    <option value="rsi">RSI順</option>
+    <option value="momentum_1w">週次騰落率</option>
+    <option value="momentum_1m">月次騰落率</option>
+    <option value="momentum_3m">3ヶ月騰落率</option>
+  </select>
+  <span id="countLabel" style="font-size:12px;color:#888;"></span>
+</div>
+
+<div style="overflow-x:auto;">
+<table id="tbl">
+  <thead><tr id="thead"></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+<script>
+let frames=[], cur=0;
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  let si=0; while(si<lines.length&&lines[si].startsWith('#'))si++;
+  const hdrs=lines[si].split(',').map(h=>h.trim());
+  return lines.slice(si+1).map(l=>{
+    // signalsカラムはクォートで囲まれているため特別処理
+    const parts=smartSplit(l);
+    const o={}; hdrs.forEach((h,i)=>o[h]=(parts[i]||'').trim().replace(/^"|"$/g,''));
+    if(!o.ticker) return null;
+    return {
+      ticker:o.ticker, price:parseFloat(o.price)||0,
+      judgment:o.judgment||'HOLD', score:parseInt(o.score)||0,
+      rsi:parseFloat(o.rsi)||0, macd:parseFloat(o.macd_diff)||0,
+      bb_pct:parseFloat(o.bb_pct)||0,
+      momentum_1w:parseFloat(o.momentum_1w)||0,
+      momentum_1m:parseFloat(o.momentum_1m)||0,
+      momentum_3m:parseFloat(o.momentum_3m)||0,
+      vol_ratio:parseFloat(o.vol_ratio)||0,
+      pe:parseFloat(o.pe_ratio)||0,
+      signals:o.signals||''
+    };
+  }).filter(Boolean);
+}
+
+function smartSplit(line){
+  const res=[]; let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;cur+=c;}
+    else if(c===','&&!inQ){res.push(cur);cur='';}
+    else cur+=c;
+  }
+  res.push(cur); return res;
+}
+
+async function loadFiles(files){
+  const arr=[...files].filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+  frames=[];
+  document.getElementById('progress').textContent=`読み込み中... 0/${arr.length}`;
+  for(let i=0;i<arr.length;i++){
+    const text=await arr[i].text();
+    const rows=parseCSV(text);
+    if(rows.length>0){
+      const ts=arr[i].name.replace('_asia','').replace('.csv','');
+      frames.push({ts,rows});
+    }
+    document.getElementById('progress').textContent=`読み込み中... ${i+1}/${arr.length}`;
+  }
+  if(frames.length>0){
+    document.getElementById('loadArea').style.display='none';
+    document.getElementById('ctrl').style.display='flex';
+    document.getElementById('filterRow').style.display='flex';
+    cur=frames.length-1;
+    renderTable();
+  }
+  document.getElementById('progress').textContent=`${frames.length}ファイル読み込み完了`;
+}
+
+function stepFrame(d){
+  cur=(cur+d+frames.length)%frames.length;
+  renderTable();
+}
+
+function renderTable(){
+  if(!frames.length) return;
+  const fr=frames[cur];
+  const ts=fr.ts; let label=ts;
+  if(ts.length>=12) label=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
+  document.getElementById('timeLabel').textContent=label;
+  document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
+
+  const judge=document.getElementById('filterJudge').value;
+  const search=document.getElementById('searchTicker').value.toLowerCase();
+  const sortKey=document.getElementById('sortCol').value;
+
+  let rows=[...fr.rows];
+  if(judge) rows=rows.filter(r=>r.judgment===judge);
+  if(search) rows=rows.filter(r=>r.ticker.toLowerCase().includes(search));
+  rows.sort((a,b)=>b[sortKey]-a[sortKey]);
+
+  document.getElementById('countLabel').textContent=`${rows.length}件`;
+
+  // ヘッダー
+  document.getElementById('thead').innerHTML=`
+    <th>銘柄</th><th>価格</th><th>判定</th>
+    <th>スコア</th><th>RSI</th><th>MACD</th><th>BB%</th>
+    <th>週次%</th><th>月次%</th><th>3ヶ月%</th>
+    <th>出来高比</th><th>PER</th>`;
+
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  rows.slice(0,200).forEach(r=>{
+    const cls=r.judgment==='BUY'?'buy':r.judgment==='SELL'?'sell':'hold';
+    const bw=Math.min(100,Math.abs(r.score));
+    const bc=r.score>0?'#4CAF50':'#F44336';
+    const fmt=(v,d=1)=>`<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(d)}%</span>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><b>${r.ticker}</b></td>
+      <td>${r.price.toFixed(2)}</td>
+      <td class="${cls}">${r.judgment==='BUY'?'🟢':r.judgment==='SELL'?'🔴':'🟡'} ${r.judgment}</td>
+      <td>${r.score} <span class="bar-bg"><span class="bar-fill" style="width:${bw}%;background:${bc}"></span></span></td>
+      <td style="color:${r.rsi>70?'#C62828':r.rsi<30?'#2E7D32':'#555'}">${r.rsi.toFixed(1)}</td>
+      <td class="${r.macd>=0?'pos':'neg'}">${r.macd>=0?'+':''}${r.macd.toFixed(3)}</td>
+      <td style="color:${r.bb_pct>80?'#C62828':r.bb_pct<20?'#2E7D32':'#555'}">${r.bb_pct.toFixed(1)}</td>
+      <td>${fmt(r.momentum_1w)}</td>
+      <td>${fmt(r.momentum_1m)}</td>
+      <td>${fmt(r.momentum_3m)}</td>
+      <td style="color:${r.vol_ratio>1.5?'#E65100':'#555'}">${r.vol_ratio.toFixed(2)}x</td>
+      <td>${r.pe>0?r.pe.toFixed(1):'-'}</td>`;
+    tr.style.cursor='pointer';
+    tr.onclick=()=>alert(`${r.ticker}\n判定: ${r.judgment} (スコア:${r.score})\nRSI: ${r.rsi.toFixed(1)} | MACD: ${r.macd.toFixed(3)} | BB%: ${r.bb_pct.toFixed(1)}\n週次: ${r.momentum_1w.toFixed(1)}% | 月次: ${r.momentum_1m.toFixed(1)}%\n出来高比: ${r.vol_ratio.toFixed(2)}x\n\nシグナル:\n${r.signals.replace(/['\[\]]/g,'').trim()||'なし'}`);
+    tbody.appendChild(tr);
+  });
+}
+
+document.body.addEventListener('dragover',e=>e.preventDefault());
+document.body.addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.csv'));if(f.length)loadFiles(f);});
+</script>
+</body>
+</html>

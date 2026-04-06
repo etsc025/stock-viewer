@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>N225 Bubble Chart</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #ffffff; color: #1a1a1a; font-family: -apple-system, sans-serif; padding: 8px 16px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+button { background: #f0f0f0; border: 1px solid #e0e0e0; color: #1a1a1a; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+button:hover { background: #e0e0e0; }
+button.active { background: #E65100; border-color: #E65100; color: #fff; }
+canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; cursor: pointer; }
+.li.dim { opacity: 0.25; }
+.ld { width: 9px; height: 9px; border-radius: 50%; }
+.tip { position: fixed; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.6; max-width: 280px; }
+#loadArea { border: 2px dashed #FFB74D; border-radius: 8px; padding: 2rem; text-align: center; color: #888; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+#loadArea:hover { background: #FFF3E0; }
+#progress { font-size: 12px; color: #888; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.5rem 0 0.25rem;">
+  <div>
+    <div style="font-size:28px;font-weight:700;line-height:1.1">N225 <span style="font-size:16px;color:#888;">東証33業種</span></div>
+    <div style="font-size:20px;color:#666;margin-top:2px" id="timeLabel">読み込み中...</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px;margin-right:16px;">
+    <div style="font-size:12px;color:#888;margin-bottom:6px;">Bubble = 時価総額</div>
+    <div style="display:flex;align-items:flex-end;gap:12px;">
+      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Large</div></div>
+      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Mid</div></div>
+      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(230,81,0,0.15)" stroke="rgba(230,81,0,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#aaa;">Small</div></div>
+    </div>
+  </div>
+  <div style="text-align:right;padding-top:4px;">
+    <a href="index.html" style="font-size:13px;color:#E65100;text-decoration:none;">← メニュー</a>
+  </div>
+</div>
+<div class="controls" id="ctrl" style="display:none">
+  <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
+  <button onclick="stepFrame(-1)">◀ 前へ</button>
+  <button onclick="stepFrame(1)">次へ ▶</button>
+  <label style="font-size:12px;color:#888;">速度</label>
+  <button onclick="setSpeed(1000)">1x</button>
+  <button onclick="setSpeed(500)" class="active">2x</button>
+  <button onclick="setSpeed(250)">4x</button>
+  <input type="range" id="slider" min="0" value="0" style="width:160px;" oninput="sliderChange()">
+  <span id="frameLabel" style="font-size:12px;color:#888;"></span>
+</div>
+<div id="progress"></div>
+<div id="loadArea" onclick="document.getElementById('fi').click()">
+  N225フォルダのCSVをドロップ、またはクリックして選択<br>
+  <small style="color:#aaa;">Finderで *.csv を全選択 → ここにドロップ</small>
+  <input type="file" id="fi" accept=".csv" multiple style="display:none" onchange="loadFiles(this.files)">
+</div>
+<canvas id="cv" height="520" style="display:none"></canvas>
+<div class="legend" id="leg"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const COLORS = {
+  '水産・農林業':'#1B5E20','鉱業':'#37474F','建設業':'#6D4C41',
+  '食料品':'#558B2F','繊維製品':'#33691E','パルプ・紙':'#827717',
+  '化学':'#F57C00','医薬品':'#00838F','石油・石炭製品':'#263238',
+  'ゴム製品':'#880E4F','ガラス・土石製品':'#4E342E','鉄鋼':'#546E7A',
+  '非鉄金属':'#BF360C','金属製品':'#4A148C','機械':'#5D4037',
+  '電気機器':'#1565C0','輸送用機器':'#2E7D32','精密機器':'#283593',
+  'その他製品':'#AD1457','電力・ガス':'#F9A825','陸運業':'#4527A0',
+  '海運業':'#00695C','空運業':'#0D47A1','倉庫・運輸関連業':'#E65100',
+  '情報・通信業':'#7B1FA2','卸売業':'#F9A825','小売業':'#E64A19',
+  '銀行業':'#0097A7','証券、商品先物取引業':'#B71C1C','保険業':'#C62828',
+  'その他金融業':'#1A237E','不動産業':'#6A1B9A','サービス業':'#00796B'
+};
+const SECTORS = Object.keys(COLORS);
+let frames=[], cur=0, playing=false, timer=null, speed=500;
+let hidden=new Set(), jitter={};
+function hash(s){let h=0;for(let c of s)h=(h*31+c.charCodeAt(0))>>>0;return h/0xFFFFFFFF;}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  let si=0; while(si<lines.length && lines[si].startsWith('#')) si++;
+  const hdrs=lines[si].split(',').map(h=>h.trim());
+  return lines.slice(si+1).map(l=>{
+    const v=l.split(',').map(s=>s.trim());
+    const o={}; hdrs.forEach((h,i)=>o[h]=v[i]||'');
+    return {ticker:o.ticker,name:o.name,sector:o.sector,
+            ret:parseFloat(o.return_pct)||0,cap:parseFloat(o.market_cap_b)||0};
+  }).filter(r=>r.ticker&&r.cap>0);
+}
+
+async function loadFiles(files){
+  const arr=[...files].filter(f=>f.name.endsWith('.csv')).sort((a,b)=>a.name.localeCompare(b.name));
+  frames=[];
+  document.getElementById('progress').textContent=`読み込み中... 0/${arr.length}`;
+  for(let i=0;i<arr.length;i++){
+    const text=await arr[i].text();
+    const rows=parseCSV(text);
+    if(rows.length>0){
+      const ts=arr[i].name.replace('.csv','');
+      rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
+      frames.push({ts,rows});
+    }
+    document.getElementById('progress').textContent=`読み込み中... ${i+1}/${arr.length}`;
+  }
+  if(frames.length>0){
+    document.getElementById('loadArea').style.display='none';
+    document.getElementById('cv').style.display='block';
+    document.getElementById('ctrl').style.display='flex';
+    const sl=document.getElementById('slider');
+    sl.max=frames.length-1; sl.value=frames.length-1;
+    cur=frames.length-1;
+    buildLegend(); draw();
+  }
+  document.getElementById('progress').textContent=`${frames.length}ファイル読み込み完了`;
+}
+
+function buildLegend(){
+  const leg=document.getElementById('leg'); leg.innerHTML='';
+  const active=[...new Set(frames.flatMap(f=>f.rows.map(r=>r.sector)))].filter(s=>COLORS[s]);
+  active.forEach(s=>{
+    const d=document.createElement('div'); d.className='li'+(hidden.has(s)?' dim':'');
+    d.innerHTML=`<div class="ld" style="background:${COLORS[s]}"></div>${s}`;
+    d.onclick=()=>{hidden.has(s)?hidden.delete(s):hidden.add(s);d.classList.toggle('dim');draw();};
+    leg.appendChild(d);
+  });
+}
+
+function draw(){
+  if(!frames.length) return;
+  const fr=frames[cur];
+  const cv=document.getElementById('cv');
+  const W=cv.offsetWidth*devicePixelRatio, H=520*devicePixelRatio;
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  // タイムラベル更新
+  const ts=fr.ts; let label=ts;
+  if(ts.length>=12) label=`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} ${ts.slice(8,10)}:${ts.slice(10,12)}`;
+  document.getElementById('timeLabel').textContent=label;
+  document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
+
+  const active=[...new Set(fr.rows.map(r=>r.sector))].filter(s=>COLORS[s]).sort();
+  const nS=active.length; if(!nS) return;
+  const PAD=55, colW=(W-PAD*2)/nS;
+  const rets=fr.rows.map(d=>d.ret).filter(isFinite);
+  const maxR=Math.max(Math.abs(Math.min(...rets)),Math.abs(Math.max(...rets)),0.01);
+  const maxCap=Math.max(...fr.rows.map(d=>d.cap),0.01);
+  const toY=r=>H/2-(r/maxR)*(H/2-PAD*1.2);
+  const bR=cap=>Math.max(3,Math.min(36,Math.sqrt(cap/maxCap)*38*devicePixelRatio));
+
+  // グリッド
+  ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD,H/2); ctx.lineTo(W-PAD,H/2); ctx.stroke();
+  active.forEach((s,i)=>{
+    const x=PAD+colW*(i+0.5);
+    ctx.beginPath(); ctx.moveTo(x,PAD); ctx.lineTo(x,H-PAD); ctx.strokeStyle='#f5f5f5'; ctx.stroke();
+    ctx.fillStyle='#bbb'; ctx.font=`${Math.max(8,9*devicePixelRatio)}px sans-serif`;
+    ctx.textAlign='center';
+    const lbl=s.length>8?s.slice(0,7)+'…':s;
+    ctx.fillText(lbl,x,H-8);
+  });
+
+  // Y軸
+  ctx.fillStyle='#bbb'; ctx.font=`${9*devicePixelRatio}px sans-serif`; ctx.textAlign='right';
+  [-maxR,-maxR/2,0,maxR/2,maxR].forEach(v=>{
+    ctx.fillText((v>=0?'+':'')+v.toFixed(1)+'%',PAD-4,toY(v)+4);
+  });
+
+  // バブル
+  fr.rows.forEach(row=>{
+    const si=active.indexOf(row.sector); if(si<0) return;
+    const jx=jitter[row.ticker]||0.5;
+    const cx=PAD+colW*(si+0.2+jx*0.6);
+    const cy=toY(row.ret);
+    const r=bR(row.cap);
+    const col=COLORS[row.sector]||'#888';
+    const dim=hidden.has(row.sector);
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=col+(dim?'22':'88'); ctx.fill();
+    ctx.strokeStyle=dim?col+'33':col; ctx.lineWidth=dim?0.5:1.2; ctx.stroke();
+    if(r>12&&!dim){ctx.fillStyle=col;ctx.font=`bold ${Math.max(8,8*devicePixelRatio)}px sans-serif`;ctx.textAlign='center';ctx.fillText(row.ticker,cx,cy+3);}
+    row._cx=cx; row._cy=cy; row._r=r;
+  });
+}
+
+// ツールチップ
+document.getElementById('cv').addEventListener('mousemove',e=>{
+  if(!frames.length) return;
+  const cv=document.getElementById('cv');
+  const rc=cv.getBoundingClientRect();
+  const mx=(e.clientX-rc.left)*devicePixelRatio, my=(e.clientY-rc.top)*devicePixelRatio;
+  const tip=document.getElementById('tip');
+  const fr=frames[cur]; let found=null;
+  for(const row of fr.rows){if(row._cx&&Math.hypot(row._cx-mx,row._cy-my)<(row._r||10)+4){found=row;break;}}
+  if(found){
+    const s=found.ret>=0?'+':'';
+    tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-28)+'px';
+    tip.innerHTML=`<b>${found.ticker}</b> ${found.name}<br>業種: ${found.sector}<br>前日比: ${s}${found.ret.toFixed(2)}%<br>時価総額: ¥${found.cap.toFixed(0)}B`;
+  } else tip.style.display='none';
+});
+document.getElementById('cv').addEventListener('mouseleave',()=>{document.getElementById('tip').style.display='none';});
+
+// ドロップ
+document.body.addEventListener('dragover',e=>e.preventDefault());
+document.body.addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.csv'));if(f.length)loadFiles(f);});
+
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('btnPlay').textContent=playing?'⏹ 停止':'▶ 再生';
+  if(playing){function step(){if(!playing)return;stepFrame(1);timer=setTimeout(step,speed);}step();}
+  else clearTimeout(timer);
+}
+function stepFrame(d){cur=(cur+d+frames.length)%frames.length;document.getElementById('slider').value=cur;draw();}
+function sliderChange(){cur=+document.getElementById('slider').value;draw();}
+function setSpeed(s){speed=s;}
+window.addEventListener('resize',()=>{if(frames.length)draw();});
+</script>
+</body>
+</html>
