@@ -51,10 +51,8 @@ canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 
   <span id="frameLabel" style="font-size:12px;color:#888;"></span>
 </div>
 <div id="progress"></div>
-<div id="loadArea" onclick="document.getElementById('fi').click()">
-  N225フォルダのCSVをドロップ、またはクリックして選択<br>
-  <small style="color:#aaa;">Finderで *.csv を全選択 → ここにドロップ</small>
-  <input type="file" id="fi" accept=".csv" multiple style="display:none" onchange="loadFiles(this.files)">
+<div id="loadArea">
+  <span id="loadMsg">📡 GitHubからデータを自動読み込み中...</span>
 </div>
 <canvas id="cv" height="520" style="display:none"></canvas>
 <div class="legend" id="leg"></div>
@@ -207,6 +205,50 @@ document.getElementById('cv').addEventListener('mouseleave',()=>{document.getEle
 // ドロップ
 document.body.addEventListener('dragover',e=>e.preventDefault());
 document.body.addEventListener('drop',e=>{e.preventDefault();const f=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.csv'));if(f.length)loadFiles(f);});
+
+// GitHubから自動読み込み
+async function loadFromGitHub(){
+  const base = 'https://raw.githubusercontent.com/etsc025/stock-viewer/main/data/n225/';
+  const api  = 'https://api.github.com/repos/etsc025/stock-viewer/contents/data/n225';
+  try {
+    document.getElementById('loadMsg').textContent = '📡 GitHubからN225データを読み込み中...';
+    const res = await fetch(api);
+    const list = await res.json();
+    const csvFiles = (Array.isArray(list)?list:[])
+      .filter(f=>f.name&&f.name.endsWith('.csv'))
+      .sort((a,b)=>a.name.localeCompare(b.name));
+    if(csvFiles.length===0){
+      document.getElementById('loadMsg').textContent = '⚠️ データなし（CSVをドロップしてください）';
+      return;
+    }
+    document.getElementById('progress').textContent = `${csvFiles.length}件 読み込み中...`;
+    frames=[];
+    for(const f of csvFiles){
+      const r = await fetch(base+f.name);
+      const text = await r.text();
+      const rows = parseCSV(text);
+      if(rows.length>0){
+        const ts=f.name.replace('.csv','');
+        rows.forEach(r=>{if(!jitter[r.ticker])jitter[r.ticker]=hash(r.ticker);});
+        frames.push({ts,rows});
+      }
+    }
+    document.getElementById('progress').textContent = `${frames.length}フレーム読み込み完了`;
+    if(frames.length>0){
+      document.getElementById('loadArea').style.display='none';
+      document.getElementById('cv').style.display='block';
+      document.getElementById('ctrl').style.display='flex';
+      const sl=document.getElementById('slider');
+      sl.max=frames.length-1; sl.value=frames.length-1;
+      cur=frames.length-1;
+      buildLegend(); draw();
+    }
+  } catch(e) {
+    document.getElementById('loadMsg').textContent = '❌ 読み込みエラー: '+e.message;
+    document.getElementById('progress').textContent = '';
+  }
+}
+loadFromGitHub();
 
 function togglePlay(){
   playing=!playing;
