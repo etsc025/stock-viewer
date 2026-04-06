@@ -5,34 +5,34 @@
 <title>N225 Bubble Chart</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #0d1117; color: #c9d1d9; font-family: -apple-system,sans-serif; padding: 8px 16px; }
-button { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
-button:hover { background: #30363d; }
-button.active { background: #1a3a5c; color: #58a6ff; border-color: #58a6ff; }
-canvas { display: block; width: 100%; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; }
+body { background: #ffffff; color: #1a1a1a; font-family: -apple-system,sans-serif; padding: 8px 16px; }
+button { background: #f0f0f0; border: 1px solid #e0e0e0; color: #666666; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+button:hover { background: #e0e0e0; }
+button.active { background: #1f6feb; color: #ffffff; border-color: #1f6feb; }
+canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
-.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; cursor: pointer; }
+.li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666666; cursor: pointer; }
 .li.dim { opacity: 0.25; }
 .ld { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.tip { position: fixed; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.7; color: #c9d1d9; }
+.tip { position: fixed; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; display: none; z-index: 999; line-height: 1.7; color: #1a1a1a; }
 #spd button { font-size: 10px; padding: 2px 7px; }
 </style>
 </head>
 <body>
 <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0.4rem 0 0.25rem;">
   <div>
-    <div style="font-size:28px;font-weight:700;line-height:1.1;color:#e6edf3;">N225 <span style="font-size:16px;color:#8b949e;">東証33業種</span></div>
-    <div style="font-size:20px;color:#8b949e;margin-top:2px" id="timeLabel">読み込み中...</div>
+    <div style="font-size:28px;font-weight:700;line-height:1.1;color:#1a1a1a;">N225 <span style="font-size:16px;color:#666666;">東証33業種</span></div>
+    <div style="font-size:20px;color:#666666;margin-top:2px" id="timeLabel">読み込み中...</div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px;margin-right:16px;">
-    <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">Bubble = 時価総額</div>
+    <div style="font-size:12px;color:#666666;margin-bottom:6px;">Bubble = 時価総額</div>
     <div style="display:flex;align-items:flex-end;gap:12px;">
-      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Large</div></div>
-      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Mid</div></div>
-      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#8b949e;">Small</div></div>
+      <div style="text-align:center;"><svg width="48" height="48"><circle cx="24" cy="24" r="21" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#666666;">Large</div></div>
+      <div style="text-align:center;"><svg width="32" height="32"><circle cx="16" cy="16" r="13" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#666666;">Mid</div></div>
+      <div style="text-align:center;"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="rgba(255,166,87,0.15)" stroke="rgba(255,166,87,0.4)" stroke-width="1.5"/></svg><div style="font-size:10px;color:#666666;">Small</div></div>
     </div>
   </div>
-  <a href="index.html" style="font-size:13px;color:#58a6ff;text-decoration:none;padding-top:4px;">← メニュー</a>
+  <a href="index.html" style="font-size:13px;color:#1f6feb;text-decoration:none;padding-top:4px;">← メニュー</a>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;display:none;" id="ctrl">
   <button id="btnPlay" onclick="togglePlay()">▶ 再生</button>
@@ -45,10 +45,10 @@ canvas { display: block; width: 100%; border: 1px solid #30363d; border-radius: 
     <button onclick="setSpeed(167,'btn6x')"  id="btn6x">6x</button>
   </div>
   <input type="range" id="slider" min="0" value="0" style="width:180px;" oninput="sliderChange()">
-  <span id="frameLabel" style="font-size:12px;color:#8b949e;"></span>
+  <span id="frameLabel" style="font-size:12px;color:#666666;"></span>
 </div>
-<div id="progress" style="font-size:12px;color:#8b949e;margin-bottom:6px;"></div>
-<div id="loadMsg" style="font-size:13px;color:#8b949e;padding:1rem 0;">📡 GitHubからN225データを読み込み中...</div>
+<div id="progress" style="font-size:12px;color:#666666;margin-bottom:6px;"></div>
+<div id="loadMsg" style="font-size:13px;color:#666666;padding:1rem 0;">📡 GitHubからN225データを読み込み中...</div>
 <canvas id="cv" height="520" style="display:none;"></canvas>
 <div class="legend" id="leg"></div>
 <div class="tip" id="tip"></div>
@@ -158,18 +158,18 @@ function draw(){
   // グリッド
   [-10,-5,0,5,10].forEach(v=>{
     const y=toY(v); const isZ=(v===0);
-    ctx.strokeStyle=isZ?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.05)';
+    ctx.strokeStyle=isZ?'rgba(0,0,0,0.15)':'rgba(0,0,0,0.05)';
     ctx.lineWidth=isZ?1.5:0.8;
     ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(W-PAD_R,y); ctx.stroke();
-    ctx.fillStyle='rgba(180,180,180,0.7)'; ctx.font=`${10*dpr}px sans-serif`;
+    ctx.fillStyle='rgba(80,80,80,0.8)'; ctx.font=`${10*dpr}px sans-serif`;
     ctx.textAlign='right'; ctx.fillText((v>0?'+':'')+v+'%',PAD_L-4,y+4);
   });
 
   active.forEach((s,i)=>{
     const x=PAD_L+colW*(i+0.5);
-    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.8;
+    ctx.strokeStyle='rgba(0,0,0,0.04)'; ctx.lineWidth=0.8;
     ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,H-PAD_B); ctx.stroke();
-    ctx.fillStyle='rgba(140,140,140,0.8)'; ctx.font=`${Math.max(7,8*dpr)}px sans-serif`;
+    ctx.fillStyle='rgba(80,80,80,0.7)'; ctx.font=`${Math.max(7,8*dpr)}px sans-serif`;
     ctx.textAlign='center';
     const lbl2=s.length>6?s.slice(0,5)+'…':s;
     ctx.fillText(lbl2,x,H-PAD_B+16);
