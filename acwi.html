@@ -141,6 +141,27 @@ const COLORS = {
   'South Africa':'#EF9A9A',
   'Singapore':'#80CBC4',
   'Indonesia':'#CE93D8',
+  'Hong Kong':'#B2EBF2',
+  'Denmark':'#E1BEE7',
+  'Norway':'#B3E5FC',
+  'Finland':'#F8BBD9',
+  'Spain':'#FFCCBC',
+  'Italy':'#DCEDC8',
+  'Belgium':'#FFF9C4',
+  'Austria':'#FFE0B2',
+  'Israel':'#F0F4C3',
+  'Poland':'#E8F5E9',
+  'Denmark':'#E1BEE7',
+  'Portugal':'#E3F2FD',
+  'Malaysia':'#E8EAF6',
+  'Qatar':'#FBE9E7',
+  'United Arab Emirates':'#E0F7FA',
+  'Greece':'#EDE7F6',
+  'Chile':'#F3E5F5',
+  'Mexico':'#FFF3E0',
+  'New Zealand':'#E8F5E9',
+  'Peru':'#FFF8E1',
+  'Russian Federation':'#EFEBE9',
   'Other':'#B0BEC5'
 };
 const SECTORS = Object.keys(COLORS);
@@ -150,18 +171,25 @@ let hidden=new Set(), jitterMap={};
 function parseCSV(text){
   const lines=text.trim().split('\n');
   let spyRet=null;
-  let dataLines=lines;
-  if(lines[0].startsWith('#')){
-    if(lines[0].includes('SPY=')){
-      spyRet=parseFloat(lines[0].split('SPY=')[1]);
+  // ACWIのCSVは先頭に複数行のコメント/メタデータがある
+  // 「# SPY=...」「ACWI  -0.16」「dtype: float64」の後にticker行
+  // → tickerを含む行を探してヘッダーとする
+  for(const l of lines){
+    if(l.includes('SPY=') && l.startsWith('#')){
+      const m=l.match(/SPY=([\d.\-]+)/);
+      if(m) spyRet=parseFloat(m[1]);
     }
-    dataLines=lines.slice(1);
+    if(l.includes('ACWI') && !l.startsWith('#') && !l.includes('ticker')){
+      const m=l.match(/ACWI\s+([\d.\-]+)/);
+      if(m) spyRet=spyRet||parseFloat(m[1]);
+    }
   }
-  if(!dataLines[0] || !dataLines[0].includes('ticker')) return {rows:[], spyRet};
-  const headers=dataLines[0].split(',').map(h=>h.trim());
-  const rows=dataLines.slice(1).map(line=>{
+  // tickerヘッダー行を探す
+  const headerIdx=lines.findIndex(l=>l.trim().startsWith('ticker'));
+  if(headerIdx<0) return {rows:[], spyRet};
+  const headers=lines[headerIdx].split(',').map(h=>h.trim());
+  const rows=lines.slice(headerIdx+1).map(line=>{
     if(!line.trim()) return null;
-    // クォート対応のCSVパース
     const vals=[];
     let cur='', inQ=false;
     for(let i=0;i<line.length;i++){
@@ -172,6 +200,7 @@ function parseCSV(text){
     vals.push(cur.trim());
     const o={};
     headers.forEach((h,i)=>o[h]=vals[i]||'');
+    if(!o.ticker) return null;
     return {ticker:o.ticker,name:o.name,sector:o.sector,
             return_pct:parseFloat(o.return_pct)||0,market_cap_b:parseFloat(o.market_cap_b)||0};
   }).filter(r=>r && r.ticker);
