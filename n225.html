@@ -119,8 +119,8 @@ async function loadFromGitHub(){
 
 function buildLegend(){
   const leg=document.getElementById('leg'); leg.innerHTML='';
-  const active=[...new Set(frames.flatMap(f=>f.rows.map(r=>r.sector)))].filter(s=>COLORS[s]);
-  active.forEach(s=>{
+  // 凡例もX軸と同じく全33業種を固定表示
+  SECTORS.forEach(s=>{
     const d=document.createElement('div'); d.className='li'+(hidden.has(s)?' dim':'');
     d.innerHTML=`<div class="ld" style="background:${COLORS[s]}"></div>${s}`;
     d.onclick=()=>{hidden.has(s)?hidden.delete(s):hidden.add(s);d.classList.toggle('dim');draw();};
@@ -143,8 +143,8 @@ function draw(){
   document.getElementById('timeLabel').textContent=lbl;
   document.getElementById('frameLabel').textContent=`${cur+1}/${frames.length}`;
 
-  const active=[...new Set(fr.rows.map(r=>r.sector))].filter(s=>COLORS[s]).sort();
-  if(!active.length) return;
+  // X軸は全33業種を固定（フレームが変わっても列位置は変わらない）
+  const active=SECTORS;
   const PAD_L=58,PAD_R=8,PAD_T=20,PAD_B=56;
   const cW=W-PAD_L-PAD_R, cH=H-PAD_T-PAD_B;
   const nS=active.length, colW=cW/nS;
